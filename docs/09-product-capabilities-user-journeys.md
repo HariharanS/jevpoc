@@ -30,6 +30,22 @@ A useful shorthand from the project discussion is:
 
 The application should feel closer to Shapeshift's "one input that becomes the right UI" idea than a normal chat window, but it must go beyond hard-coded intent-to-card mappings.
 
+## Product surface hierarchy
+
+The visible product hierarchy is:
+
+~~~text
+1. voice orb / text composer
+2. intent cards / current semantic state
+3. optional compact transcript
+4. optional processing summary
+5. optional developer trace
+~~~
+
+The trace is not a core product feature for ordinary users. It is a developer/debug capability available inside the same workspace.
+
+Read [21 — Core app experience](21-core-app-experience.md).
+
 ## Product modes
 
 ### App mode
@@ -47,9 +63,9 @@ The user sees:
 - confirmations after a committed action;
 - corrections that mutate existing state instead of producing duplicate chat artifacts.
 
-### Inspector mode
+### Developer details / Inspector
 
-The same interaction with the control plane exposed.
+A feature toggle inside the same interaction exposes the control plane. It is not a separate primary product area.
 
 The user/developer can inspect:
 
