@@ -16,7 +16,7 @@ This file answers: **What should an implementation agent build, what should it s
 | Tools | Provider-neutral Tool Gateway with deterministic policy/approval | 14 |
 | Persistence | SQLite locally | 02, ADR 0001 |
 | Telemetry | Structured trace + OpenTelemetry + Inspector event stream | 04 |
-| Voice semantic model | Transcript Ledger + semantic checkpoints | 08 |
+| Voice semantic model | Transcript Ledger + hybrid Semantic Checkpoint Scheduler + semantic checkpoints | 08, 16 |
 | Memory | Episode candidates + JEV classification + deterministic write policy | 13 |
 
 ## Implement as a vertical slice, not as a framework
@@ -36,6 +36,8 @@ typed or streamed input
 Then add one governed tool.
 
 Then add the mixed-utterance voice scenario.
+
+For continuous/yapping input, implement the small hybrid checkpoint scheduler from doc 16. Do not call JEV or an LLM on every STT partial, and do not wait for a whole long utterance before doing any semantic work.
 
 ## Spike before selecting
 
@@ -59,6 +61,22 @@ Success criteria:
 - implementation remains smaller than building equivalent machinery ourselves.
 
 Do not reimplement mature harness features merely for "purity."
+
+### Checkpoint scheduler tuning
+
+The scheduler architecture is chosen, but its thresholds are not.
+
+Benchmark:
+
+- JEV calls per minute;
+- useful-state latency;
+- missed intent boundaries;
+- UI flapping;
+- correction patch accuracy;
+- long continuous-speech behavior;
+- cost.
+
+Compare the hybrid scheduler against two explicit baselines: final-transcript-only and LLM-first-after-STT.
 
 ### STT/control-first voice provider
 
