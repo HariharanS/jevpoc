@@ -13,7 +13,7 @@ This document answers a central project question:
 RAW INPUT
    |
    v
-INGRESS / NORMALIZATION
+INPUT EVENT ENVELOPE
    |
    v
 PRE-TURN JEV CONTROL PLANE
@@ -74,7 +74,7 @@ type RuntimeInput = {
 
 No LLM is required here.
 
-## Stage 2 — deterministic normalization
+## Stage 2 — deterministic input/event normalization
 
 Before JEV, normal code can add facts that do not require semantic judgment:
 
@@ -205,6 +205,8 @@ The runtime can:
 - reject/stop.
 
 This is the point at which the reasoning harness becomes relevant.
+
+For continuous voice, the Semantic Checkpoint Scheduler in doc 16 runs between the Transcript Ledger and this semantic lifecycle. It decides **when** to create a SemanticInput; it does not decide what the user means.
 
 # Harness strategy
 
@@ -423,7 +425,7 @@ Conceptually:
 ~~~ts
 interface HarnessAdapter {
   run(request: HarnessRequest): AsyncIterable<HarnessEvent>;
-  cancel(runId: string): Promise<void>;
+  cancel(traceId: TraceId): Promise<void>;
 }
 ~~~
 
@@ -444,6 +446,8 @@ A selected harness owns some combination of:
 - provider transport;
 - context window mechanics;
 - built-in agent features.
+
+The first implementation does not require a permanent harness decision. Milestones 0-2 can use the thin application-owned orchestrator directly. A harness becomes an optimization/delegation choice after the contracts are working.
 
 ## Three interception layers
 
