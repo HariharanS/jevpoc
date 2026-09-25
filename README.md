@@ -18,6 +18,12 @@ It distinguishes:
 
 For implementation status, see **[docs/15-decision-status-and-open-experiments.md](docs/15-decision-status-and-open-experiments.md)**.
 
+The concrete build contracts are now in:
+- [TypeSafe AI / Jev practical reference](docs/17-typesafe-ai-reference.md)
+- [Runtime contracts](docs/18-runtime-contracts.md)
+- [First demo and evaluation](docs/19-first-demo-and-evaluation.md)
+- [UI / UX design](docs/20-ui-ux-design.md)
+
 ## Product thesis
 
 This is **not primarily a chatbot**.
@@ -50,7 +56,7 @@ A useful shorthand is:
 RAW INPUT
    |
    v
-deterministic normalization
+Input/Event Envelope
    |
    v
 bounded SemanticFrame
@@ -94,6 +100,7 @@ The design explicitly supports two different modes:
 audio
   -> streaming STT
   -> revision-aware Transcript Ledger
+  -> hybrid Semantic Checkpoint Scheduler
   -> semantic checkpoint
   -> JEV
   -> policy
@@ -114,7 +121,56 @@ In that mode, JEV cannot pretend to be a pre-model filter because the voice mode
 - delegated backend work;
 - memory/persistence.
 
-See [docs/08-voice-architecture.md](docs/08-voice-architecture.md) and the dated [voice-provider research](docs/research/2026-09-25-voice-provider-findings.md).
+See [docs/08-voice-architecture.md](docs/08-voice-architecture.md), [docs/16-streaming-checkpoint-scheduler.md](docs/16-streaming-checkpoint-scheduler.md), and the [detailed voice API capability matrix](docs/research/2026-09-25-voice-api-capability-matrix.md).
+
+## First demo
+
+The first implementation target is **Live Intent Workspace**:
+
+~~~text
+raw / streaming input
+      |
+      v
+JEV semantic decisions
+      |
+      v
+typed SemanticEvents
+      |
+      v
+cards that CREATE / PATCH / MERGE in place
+~~~
+
+The north-star scenario is the mixed-intent correction example, especially:
+
+~~~text
+"I drank 200 ml Coke"
+        -> hydration draft
+
+"no, I mean water"
+        -> PATCH same event to Water
+~~~
+
+The first UI is a three-column Lab view:
+
+~~~text
+Input Stream | Processing / JEV / Policy | Intent Canvas
+                       +
+                 Inspector timeline
+~~~
+
+with a provider-neutral ChatGPT/Grok-style voice orb for voice input.
+
+See [docs/19-first-demo-and-evaluation.md](docs/19-first-demo-and-evaluation.md) and [docs/20-ui-ux-design.md](docs/20-ui-ux-design.md).
+
+## TypeSafe / Jev
+
+The Jev integration is concrete, not an unspecified external service.
+
+The TypeScript adapter uses the official TypeSafe SDK behind the application-owned DecisionEngine port. Question sets are versioned, independent questions sharing state are batched, and benchmark runs pin a Jev model version.
+
+AI coding agents working on Jev should read/use the official TypeSafe agent skill first.
+
+See [docs/17-typesafe-ai-reference.md](docs/17-typesafe-ai-reference.md).
 
 ## Semantic state and UI
 
@@ -243,17 +299,24 @@ These are intended to become eval/test seeds rather than one-off examples.
 
 ## Initial technology direction
 
-- TypeScript / Node.js
+Locked for the first implementation:
+
+- pnpm workspaces
+- Node.js 22+
+- TypeScript
 - React + Vite
 - Fastify
-- WebSocket for realtime voice/media flow
-- SQLite
 - Zod
+- built-in node:sqlite + plain SQL
 - Vitest
+- Biome
 - OpenTelemetry
 - SSE for the Inspector event stream
+- WebSocket for server-mediated voice
 
-These are starting choices rather than permanent platform commitments.
+The first general-purpose LLM adapter uses the OpenAI JS SDK behind an application port; the model ID remains configuration.
+
+Provider/harness choices remain replaceable behind adapters.
 
 ## Build order
 
@@ -267,6 +330,9 @@ Before coding, read:
 
 - [AGENTS.md](AGENTS.md)
 - [docs/README.md](docs/README.md)
-- the relevant normative docs and research snapshots for the task.
+- [docs/18-runtime-contracts.md](docs/18-runtime-contracts.md)
+- the relevant normative docs, eval fixtures and research snapshots for the task.
+
+For Jev work, also use/read the official TypeSafe agent skill.
 
 Architectural decisions live under [docs/adr](docs/adr).
