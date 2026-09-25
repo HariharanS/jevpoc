@@ -12,7 +12,11 @@ Before substantial work:
 2. read `docs/15-decision-status-and-open-experiments.md`;
 3. read the normative documents relevant to your task;
 4. read the dated research snapshot relevant to any provider/framework choice;
-5. read applicable ADRs.
+5. read applicable ADRs;
+6. if implementing Jev/TypeSafe, read docs/17-typesafe-ai-reference.md and the official TypeSafe agent skill;
+7. read docs/18-runtime-contracts.md before changing APIs, traces, approvals, loops, fallback or persistence;
+8. read docs/19-first-demo-and-evaluation.md and tests/evals before changing question wording or thresholds;
+9. read docs/20-ui-ux-design.md before implementing the frontend.
 
 Do not re-research an area from scratch unless the existing research is stale for the implementation question, an API has changed, or observed behavior conflicts with the snapshot.
 
@@ -76,7 +80,17 @@ Provider/framework types must not become the core domain model.
 - Keep thresholds and action consequences in deterministic policy.
 - Add evals for important question families.
 
-Read `docs/11-jev-request-modeling.md` before changing this behavior.
+Read docs/11-jev-request-modeling.md and docs/17-typesafe-ai-reference.md before changing this behavior.
+
+For TypeSafe/Jev work:
+
+- use/read the official TypeSafe agent skill first;
+- use the official @typesafe-ai/sdk inside the adapter;
+- keep TypeSafe SDK objects out of core;
+- preserve the exact Noul / Choice / Score answer distinctions;
+- batch independent questions sharing one state;
+- pin a Jev model version for eval runs;
+- rerun checked-in fixtures whenever question wording/criteria/thresholds change.
 
 ## Voice rules
 
@@ -148,6 +162,53 @@ Read `docs/14-tool-gateway-mcp-webmcp.md`.
 - Do not add a vector database until retrieval needs justify one.
 
 Read `docs/13-session-retro-memory.md`.
+
+## Runtime contract rules
+
+The following are already decided and must not be reinvented in Milestone 1:
+
+- traceId exists before semantic processing starts;
+- POST run returns 202 + traceId immediately;
+- SQLite trace_events is Inspector replay source of truth;
+- live SSE uses an in-process TraceBus;
+- OpenTelemetry is an operational mirror, not application state;
+- Milestones 1-3 are single-pass;
+- later tool loops are bounded;
+- approval can only follow a concrete validated ToolProposal;
+- Jev failure is stage-specific and never causes high-impact actions to fail open;
+- memory_signals are read back into later SemanticFrames;
+- initial toolchain is pnpm / Node22 / node:sqlite / Biome.
+
+Read docs/18-runtime-contracts.md before changing any of these.
+
+## UI rules
+
+The first frontend is not an unspecified chatbot.
+
+Use docs/20-ui-ux-design.md:
+
+- Input Stream on the left;
+- Processing / Control Plane in the middle;
+- typed Intent Canvas on the right;
+- collapsible Inspector timeline below;
+- ChatGPT/Grok-style provider-neutral voice orb;
+- App/Lab runtime toggle;
+- SemanticEvent IDs remain stable while cards PATCH in place.
+
+Build the simulated text/transcript flow before polishing microphone animation.
+
+## Evaluation rules
+
+The architecture is a hypothesis.
+
+Before claiming it works:
+
+- compare with the LLM-first baseline;
+- use checked-in tests/evals fixtures;
+- record semantic accuracy, correction PATCH accuracy, duplicate-event rate, LLM skip rate, latency and cost;
+- do not edit expected labels just to make Jev pass.
+
+Read docs/19-first-demo-and-evaluation.md.
 
 ## Engineering rules
 
