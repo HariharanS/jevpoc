@@ -1,178 +1,380 @@
-# Observability and inspector
+# Observability and Inspector
 
-Observability is a product feature of this POC, not a later operations task.
+> **Status:** Normative implementation reference
+> **Purpose:** Make every important runtime decision inspectable without creating multiple competing trace systems.
 
-## Goal
+Observability is part of the POC product, not a later operations task.
 
-For any interaction, answer:
+## The source-of-truth rule
 
-- what input did the system receive?
-- for voice, what transcript hypotheses/revisions occurred?
-- which semantic checkpoint caused processing?
-- what state did each component see?
-- which JEV questions were asked?
-- what answers/confidence came back?
-- which threshold/policy branch fired?
-- was an LLM called, and why?
-- which model was selected?
-- which tools were proposed and executed?
-- was approval required?
-- was assistant output interrupted or cancelled?
-- what failed or retried?
-- how long did each step take?
-- what did the system retain as state/memory?
+There is one application trace abstraction:
+
+~~~text
+TraceRecorder
+    |
+    +--> SQLite trace_events   <-- durable Inspector source of truth
+    |
+    +--> in-process TraceBus   <-- live fan-out to SSE subscribers
+    |
+    +--> OpenTelemetry         <-- operational mirror / external export
+    |
+    +--> stdout JSON           <-- developer convenience only
+~~~
+
+Rules:
+
+- SQLite trace_events is the durable replay/history source of truth for Inspector.
+- TraceBus publishes the same canonical TraceEvent stream live.
+- OpenTelemetry mirrors important spans/attributes for operational tooling.
+- stdout is never read back by application code.
+- Do not maintain separate TraceSink and TraceStore contracts in core.
+
+Core interface:
+
+~~~ts
+interface TraceRecorder {
+  append(event: TraceEvent): Promise<void>;
+  read(traceId: TraceId): Promise<TraceEvent[]>;
+  subscribe(traceId: TraceId): AsyncIterable<TraceEvent>;
+}
+~~~
+
+## A trace ID exists before processing begins
+
+The client must be able to open the live Inspector while the run is still executing.
+
+Therefore:
+
+~~~http
+POST /api/sessions/:sessionId/runs
+~~~
+
+first:
+
+1. creates traceId;
+2. persists run.started;
+3. returns immediately.
+
+Response:
+
+~~~http
+202 Accepted
+~~~
+
+~~~json
+{
+  "traceId": "tr_123",
+  "status": "running"
+}
+~~~
+
+The same server process then runs the semantic work asynchronously.
+
+No external queue is required.
+
+The UI subscribes immediately:
+
+~~~http
+GET /api/traces/:traceId/events
+Accept: text/event-stream
+~~~
+
+When reconnecting, the server can replay persisted trace_events and then continue from TraceBus.
 
 ## Correlation model
 
-Use explicit identifiers rather than relying on log ordering:
+Use explicit IDs instead of log ordering:
 
-- `sessionId` — conversational/session scope,
-- `utteranceId` — one user speech unit,
-- `revision` — version of transcript evidence,
-- `traceId` — one processed semantic turn/checkpoint,
-- `responseId` — one assistant response/audio stream,
-- `toolCallId` — one proposed/executed tool action.
+- sessionId — one user workspace/conversation;
+- traceId — one semantic processing run/checkpoint;
+- utteranceId — one voice speech unit;
+- transcript revision — evidence version within an utterance;
+- SemanticEventId — stable card/event identity;
+- toolCallId — one normalized tool proposal/execution;
+- approvalId — one approval lifecycle;
+- responseId — one assistant audio/text response where needed.
 
-A long voice interaction can therefore contain many utterances and traces inside one session.
+Do not introduce a second runId in the first implementation.
 
-## Trace model
+A long voice session can contain many utterances and many traceIds.
 
-For text or semantic turns, record:
+## Canonical TraceEvent
 
-- `input.normalized`
-- `jev.preflight`
-- `policy.route`
-- `llm.generate`
-- `tool.proposed`
-- `jev.action_check`
-- `policy.action`
-- `tool.execute`
-- `jev.completion`
-- `memory.classify`
-- `turn.persist`
+~~~ts
+type TraceEvent = {
+  id: string;
+  traceId: TraceId;
+  sessionId: SessionId;
 
-For voice, additionally record:
+  sequence: number;
+  at: number;
 
-- `voice.session.started`
-- `voice.speech.started`
-- `voice.transcript.partial`
-- `voice.transcript.revised`
-- `voice.transcript.final`
-- `voice.semantic_checkpoint`
-- `voice.output.started`
-- `voice.output.delta` only as lightweight metadata, not raw audio blobs
-- `voice.output.completed`
-- `voice.output.interrupted`
-- `voice.session.reconnected`
-- `voice.session.ended`
+  type:
+    | "run.started"
+    | "input.received"
+    | "voice.session.started"
+    | "voice.speech.started"
+    | "voice.transcript.partial"
+    | "voice.transcript.revised"
+    | "voice.transcript.final"
+    | "checkpoint.created"
+    | "jev.started"
+    | "jev.completed"
+    | "policy.decided"
+    | "state.created"
+    | "state.patched"
+    | "state.sealed"
+    | "llm.started"
+    | "llm.completed"
+    | "tool.proposed"
+    | "tool.approval_required"
+    | "tool.started"
+    | "tool.completed"
+    | "approval.requested"
+    | "approval.decided"
+    | "voice.output.started"
+    | "voice.output.completed"
+    | "voice.output.interrupted"
+    | "memory.classified"
+    | "run.completed"
+    | "run.failed";
 
-Provider-native event names may be preserved in metadata for debugging, but the inspector should render canonical events.
+  data: JsonValue;
+};
+~~~
 
-## End-to-end voice timeline
+sequence is monotonically increasing within one trace.
 
-The useful unit is an episode/timeline:
+Provider-native event names may be preserved in data.providerMetadata for debugging, but Inspector renders canonical events.
 
-```
-speech starts
-  -> partial transcript r1
-  -> partial transcript r2
-  -> semantic checkpoint
-  -> JEV interpretation
-  -> draft structured event
-  -> user correction
-  -> transcript revision r3
-  -> JEV patch
-  -> soft commit
-  -> tool proposal
-  -> approval/policy
-  -> tool result
-  -> assistant audio starts
-  -> user barges in
-  -> assistant audio cancelled
-  -> next utterance
-```
+## What Inspector must answer
 
-The inspector should make this sequence visually obvious.
+For any run:
+
+- what evidence arrived?
+- which transcript revisions occurred?
+- why was a semantic checkpoint created?
+- which JEV question set/version ran?
+- what state did Jev receive?
+- what typed answers/probabilities came back?
+- which threshold/policy branch fired?
+- was an LLM called? which configured model class/provider?
+- which SemanticEvent was created/patched/sealed?
+- which tools were proposed/executed?
+- was approval required?
+- did a fallback path run?
+- how long did each stage take?
+- what token/cost metadata was reported?
+- what memory signal was classified/persisted?
+
+Do not expose private model chain-of-thought. This is an execution/state trace.
+
+## Text / semantic run timeline
+
+Example:
+
+~~~text
+run.started
+  -> input.received
+  -> jev.started
+  -> jev.completed
+  -> policy.decided
+  -> state.patched
+  -> run.completed
+~~~
+
+If an LLM is required:
+
+~~~text
+run.started
+  -> input.received
+  -> jev.completed
+  -> policy.decided: route llm
+  -> llm.started
+  -> llm.completed
+  -> state.created
+  -> run.completed
+~~~
+
+## Voice timeline
+
+The useful unit is an episode:
+
+~~~text
+voice.speech.started
+  -> transcript.partial r17
+  -> transcript.final r18
+  -> checkpoint.created
+  -> jev.completed
+  -> state.created
+  -> transcript.final r19
+  -> checkpoint.created: correction-hint
+  -> jev.completed
+  -> state.patched
+  -> speech ended
+~~~
+
+For the Coke -> Water fixture, Inspector should visibly show that one existing event was PATCHed rather than a second event created.
+
+## Checkpoint telemetry
+
+Record:
+
+- trigger reason;
+- consumed revision range;
+- elapsed time since previous checkpoint;
+- amount of new transcript text;
+- provider turn/end-of-turn metadata if any;
+- correction-hint present?;
+- Jev latency;
+- policy result;
+- state mutation;
+- LLM route/skip.
+
+This allows us to tune the checkpoint scheduler from evidence.
+
+## Tool / approval telemetry
+
+Example:
+
+~~~text
+tool.proposed
+  tool = create_reminder
+  input = {...}
+
+policy.decided
+  approval = required
+
+approval.requested
+  approvalId = ap_42
+
+approval.decided
+  approved by user:local
+
+tool.started
+tool.completed
+run.completed
+~~~
+
+Approval begins only after a concrete ToolProposal exists.
+
+## Runtime UI toggle
+
+Inspector is **not** a build-time feature flag.
+
+The same execution always records the same trace events.
+
+UI:
+
+~~~text
+[ App ] [ Lab / Inspector ]
+~~~
+
+Persist the user's display preference in localStorage.
+
+Optional URL shortcut:
+
+~~~text
+?inspector=1
+~~~
+
+App mode hides internal panels.
+
+Lab/Inspector mode renders the three-column pipeline and trace drawer defined in docs/20-ui-ux-design.md.
 
 ## Local implementation
 
-Do not require an external observability backend.
-
 Initially:
 
-- emit OpenTelemetry spans,
-- mirror useful structured trace events into SQLite,
-- stream events to inspector UI using SSE,
-- log concise JSON to stdout.
+- append canonical TraceEvent records to SQLite;
+- publish appended events to the in-process TraceBus;
+- stream TraceBus to SSE subscribers;
+- create OpenTelemetry spans for significant operations;
+- log concise structured JSON to stdout.
 
-Later, export OTLP to whichever cloud backend is chosen.
+Do not require a hosted observability service locally.
 
-## Inspector UI
+Later, export OTLP to whichever deployment backend is selected.
 
-A feature flag toggles inspector mode.
+## Metrics
 
-Minimum useful text view:
+Track only metrics that help validate the architecture:
 
-```
-Turn
-├─ Input
-├─ JEV preflight
-│  ├─ question
-│  ├─ answer
-│  ├─ confidence/probabilities
-│  └─ latency
-├─ Policy route
-├─ LLM call (if any)
-├─ Tool proposal / approval / execution (if any)
-├─ Completion decision
-└─ Persisted signals
-```
+### Jev / LLM
 
-Minimum useful voice view:
+- Jev latency per question set;
+- Jev input tokens / estimated cost;
+- LLM latency/tokens/cost;
+- percentage of bounded checkpoints that skip LLM;
+- fallback rate.
 
-```
-Voice episode
-├─ Audio activity / turn boundaries
-├─ Transcript ledger
-│  ├─ r1 partial
-│  ├─ r2 revised
-│  └─ r3 final
-├─ Semantic checkpoint
-├─ JEV decisions
-├─ Draft / patch / soft-commit / seal
-├─ LLM call (if any)
-├─ Tool proposal / approval / execution
-├─ Assistant output
-└─ Interruption / cancellation
-```
+### Streaming voice
 
-This is more useful for the POC than a generic chatbot-debug panel.
+- speech start -> first partial transcript;
+- speech end/provider EOT -> checkpoint;
+- checkpoint -> useful SemanticEvent mutation;
+- transcript revisions per utterance;
+- checkpoints per minute;
+- Jev calls per minute;
+- correction -> visible PATCH latency;
+- interruption -> audio stop latency.
 
-## Metrics worth keeping
+### Semantic state
 
-Start with only metrics that help compare architecture choices:
+- duplicate-event rate;
+- correction patch accuracy;
+- missing-information detection;
+- visible card-type flaps;
+- end-to-end fixture success.
 
-- speech-start -> first transcript latency,
-- speech-end -> semantic checkpoint latency,
-- checkpoint -> JEV latency,
-- checkpoint -> first assistant audio latency,
-- number of transcript revisions per utterance,
-- number of JEV evaluations per utterance,
-- corrections successfully patched vs duplicated,
-- tool proposals blocked/approved,
-- interruption -> audio-stop latency,
-- provider errors/reconnections,
-- LLM/tool/JEV cost metadata where available.
+See docs/19-first-demo-and-evaluation.md for benchmark targets and baseline comparisons.
 
-## Privacy
+## Privacy begins in Milestone 1
 
-Do not assume traces are harmless.
+Do not postpone trace privacy until cloud deployment.
 
-Before cloud deployment, add:
+Rules:
 
-- field-level redaction,
-- secret filtering,
-- configurable transcript retention,
-- separation of user content from operational metadata.
+- raw microphone audio is not persisted by default;
+- API keys and authorization headers are never written to TraceEvent.data;
+- known secret fields are redacted before persistence;
+- user text/transcript can be retained in local development because Inspector needs it;
+- deployed environments default to redacted content;
+- retention policy must be configurable before deployed use with real user data.
 
-Raw audio retention should be off by default. The event timeline should be diagnosable without retaining microphone audio.
+Configuration:
+
+~~~text
+TRACE_CONTENT_MODE=full | redacted | metadata-only
+~~~
+
+Defaults:
+
+~~~text
+local development: full
+deployed: redacted
+~~~
+
+## Reconnection
+
+For SSE reconnect:
+
+1. client retains traceId and last received sequence;
+2. server replays persisted SQLite events after that sequence;
+3. server then follows TraceBus live.
+
+This is enough for the POC. Do not add Kafka/event streaming infrastructure.
+
+## Definition of success
+
+A reviewer watching Lab mode should be able to determine, without opening source code:
+
+1. what the user said;
+2. when/why the runtime chose to process it;
+3. what Jev decided;
+4. whether an LLM was called;
+5. which event/card changed;
+6. whether a tool/approval occurred;
+7. the order and latency of those operations.
+
+If the trace system cannot answer those questions, it is not fulfilling the purpose of the POC.
