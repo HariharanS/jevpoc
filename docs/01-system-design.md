@@ -11,7 +11,8 @@ flowchart LR
 
     MIC --> VG[Voice Gateway]
     VG --> TL[Transcript Ledger]
-    TL --> ORCH[Request Orchestrator]
+    TL --> CS[Checkpoint Scheduler]
+    CS --> ORCH[Request Orchestrator]
 
     UI --> API[Application API]
     API --> ORCH
@@ -80,6 +81,16 @@ It records:
 - interruption/cancellation relationships.
 
 The ledger is evidence/state. It does not itself authorize actions.
+
+### Semantic Checkpoint Scheduler
+
+For streaming voice/text, this is the cheap coordination layer between the Transcript Ledger and semantic processing.
+
+It does not understand intent. It decides only when enough new evidence has accumulated to justify a semantic checkpoint, using mechanical signals such as stable/final STT segments, pauses/VAD, elapsed time, new-word thresholds, correction hints and speech-end.
+
+JEV remains the first semantic decision layer in the control-first path.
+
+See [16-streaming-checkpoint-scheduler.md](16-streaming-checkpoint-scheduler.md).
 
 ### Application API
 
