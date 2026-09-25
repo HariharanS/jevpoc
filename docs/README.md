@@ -28,7 +28,11 @@ Read these first:
 5. [Semantic state and UI runtime](12-semantic-state-and-ui-runtime.md) — CREATE/PATCH/MERGE/SEAL and morphing UI.
 6. [Voice architecture](08-voice-architecture.md) — STT/control-first vs native realtime.
 7. [Streaming checkpoint scheduler](16-streaming-checkpoint-scheduler.md) — how continuous/yapping input is chunked into semantic checkpoints without an LLM on every partial.
-8. [Implementation plan](07-implementation-plan.md) — build sequence.
+8. [TypeSafe AI / Jev practical reference](17-typesafe-ai-reference.md) — concrete API/SDK, question/answer shapes, batching, model/limits and agent skill.
+9. [Runtime contracts](18-runtime-contracts.md) — IDs, trace flow, approvals, fallback, loop bounds, memory readback and locked tooling.
+10. [First demo and evaluation](19-first-demo-and-evaluation.md) — chosen slice, baseline, fixtures and success metrics.
+11. [UI / UX design](20-ui-ux-design.md) — three-column Lab UI, voice orb, Intent Canvas and Inspector.
+12. [Implementation plan](07-implementation-plan.md) — build sequence.
 
 Then read the relevant research snapshot for the area you are changing.
 
@@ -80,10 +84,13 @@ raw request
   -> completion / state / memory
 ~~~
 
-### JEV
+### JEV / TypeSafe
 
 - [03 — JEV decision model](03-jev-decision-model.md)
 - [11 — Detailed JEV request modeling](11-jev-request-modeling.md)
+- [17 — TypeSafe AI / Jev practical reference](17-typesafe-ai-reference.md)
+
+Concrete integration is now defined: official TypeSafe SDK behind the application-owned DecisionEngine port. AI agents modifying Jev integration should read/use the official TypeSafe agent skill first.
 
 Key rule:
 
@@ -104,6 +111,19 @@ Two explicit modes:
 For the control-first path, event normalization is deliberately dumb bookkeeping. The checkpoint scheduler decides **when to ask JEV** using cheap signals; JEV decides **what the speech means**. See [16 — Streaming input and semantic checkpoint scheduler](16-streaming-checkpoint-scheduler.md).
 
 Do not pretend these have the same interception point.
+
+### Runtime contracts
+
+- [18 — Runtime contracts and ambiguity resolution](18-runtime-contracts.md)
+- [19 — First demo and evaluation](19-first-demo-and-evaluation.md)
+
+These resolve the implementation blockers: concrete typed decision answers, live traceId creation, one trace source of truth, bounded loop semantics, approval/resume, Jev fallback, memory readback, package/tooling choices and measurable success criteria.
+
+### UI
+
+- [20 — UI / UX design](20-ui-ux-design.md)
+
+The first Lab experience is a three-column pipeline: raw streaming input -> processing/Jev decisions -> typed Intent Canvas, with a bottom trace/observability drawer.
 
 ### Observability
 
@@ -148,14 +168,9 @@ Includes:
 ### Voice provider research
 
 - [Voice provider findings — 2026-09-25](research/2026-09-25-voice-provider-findings.md)
+- [Detailed voice API capability matrix — 2026-09-25](research/2026-09-25-voice-api-capability-matrix.md)
 
-Includes current research on:
-
-- OpenAI Realtime + live transcription;
-- Gemini Live + Live Transcription;
-- xAI/Grok native voice + streaming STT;
-- Strands BidiAgent as a possible abstraction experiment;
-- provider capability matrix and benchmark questions.
+The detailed matrix extends the earlier research with current official-provider findings for OpenAI, Gemini, xAI/Grok, Deepgram, ElevenLabs and Azure Voice Live, including turn-detection, partial/final transcript behavior, tools, browser authentication and project-specific benchmark implications.
 
 ### Freshness rule
 
@@ -207,6 +222,8 @@ Current durable decisions:
 
 ## What is locked for the first implementation
 
+The first demo is **Live Intent Workspace**: mixed-intent/correction semantics text-first, then the same runtime over streaming voice.
+
 These are not open research questions:
 
 - application owns semantic state;
@@ -219,7 +236,15 @@ These are not open research questions:
 - voice transcript evidence is revision-aware;
 - STT finality is not action permission;
 - App and Inspector views share the same execution;
-- first architecture is local-first and simple.
+- first architecture is local-first and simple;
+- TypeSafe/Jev uses the official SDK behind DecisionEngine;
+- trace_events in SQLite is the Inspector replay source of truth;
+- semantic runs create traceId before processing and stream live over SSE;
+- Milestones 1-3 are single-pass; tool loops later are bounded;
+- approval begins only after a concrete ToolProposal;
+- memory has an explicit readback path;
+- pnpm + node:sqlite + Biome are locked for initial implementation;
+- the POC is measured against an LLM-first baseline.
 
 ## What needs a spike before commitment
 
@@ -279,12 +304,14 @@ Unless a concrete requirement appears, do not introduce:
 |---|---|
 | Raw-request/model routing | 10, 11, harness research |
 | Microsoft Agent Framework/Copilot/Strands integration | 10 + harness research |
-| JEV questions/evals | 03, 11, JEV harness research |
-| Voice/STT/realtime | 08, 11, 16, voice-provider research, mixed-utterance example |
-| UI/cards/generative UI | 09, 12 |
-| Tools/MCP/WebMCP | 14, 10 |
-| Memory/retro | 13, 11 |
-| Inspector/telemetry | 04 + relevant domain doc |
+| JEV questions/evals | 03, 11, 17, 19, tests/evals, JEV harness research |
+| TypeSafe adapter / Jev API | 17, 18, TypeSafe skill |
+| Voice/STT/realtime | 08, 11, 16, detailed voice capability matrix, mixed-utterance example |
+| UI/cards/voice orb | 09, 12, 20 |
+| Runtime contracts / APIs | 02, 18 |
+| Tools/MCP/WebMCP/approvals | 14, 18, 10 |
+| Memory/retro | 13, 18, 11 |
+| Inspector/telemetry | 04, 18, 20 |
 | Payment/API demo | examples/02 + 11 |
 | Deployment | 05 + ADR 0001 |
 
