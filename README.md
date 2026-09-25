@@ -4,9 +4,15 @@ A local-first reference application for exploring **JEV as a fast decision plane
 
 The repository is intended to be more than a codebase: it is the project's **shared research and design memory**, so a new human or AI agent can continue from the decisions and investigations already completed instead of starting again from a blank search.
 
+## Start building
+
+If you are handing this repo to a coding agent, start with **[BUILD.md](BUILD.md)**.
+
+It assigns Milestones 0-1 only and gives the exact UI/API/test acceptance criteria so the agent can build without inventing missing contracts.
+
 ## Project brain
 
-Start with **[docs/README.md](docs/README.md)**.
+For the full design/research memory, start with **[docs/README.md](docs/README.md)**.
 
 It distinguishes:
 
