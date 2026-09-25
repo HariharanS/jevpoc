@@ -1,36 +1,34 @@
 # Technical design
 
-## Recommended initial stack
+> **Status:** Normative implementation reference
+> **Read with:** docs/17-typesafe-ai-reference.md and docs/18-runtime-contracts.md
+
+## Locked initial stack
 
 Use a boring TypeScript stack:
 
-- Node.js 22+
-- TypeScript
-- React + Vite for the web UI
-- Fastify for the local/API server
-- WebSocket for realtime voice/media events
-- SQLite for local persistence
-- Drizzle ORM only if it reduces SQL friction; plain SQL is acceptable
-- Zod for runtime schemas
-- Vitest for unit/integration tests
-- OpenTelemetry API/SDK for traces
-- Server-Sent Events for live inspector updates
+~~~text
+Node.js          22+
+package manager  pnpm workspaces
+language         TypeScript
+web              React + Vite
+API              Fastify
+validation       Zod
+database         node:sqlite + plain SQL
+tests            Vitest
+lint/format      Biome
+telemetry        OpenTelemetry
+Inspector live   Server-Sent Events
+voice transport  WebSocket where server-mediated
+~~~
 
-Why this shape:
+Do not add an ORM until plain SQL becomes painful.
 
-- runs fully locally,
-- UI and server concerns are cleanly separated,
-- voice does not require committing to one provider or cloud,
-- no dependency on a particular serverless runtime,
-- easy to containerize,
-- deployable later to a VM/container platform,
-- adapters can be moved to serverless/edge only if useful.
-
-Do **not** add CopilotKit initially. A standard React UI is sufficient for the POC and leaves orchestration and voice-state transitions visible. Revisit an agent UI framework only after the interaction model becomes complex enough to justify it.
+Do not add CopilotKit initially. A standard React UI keeps semantic state and orchestration visible. Revisit agent-UI frameworks only after the base interaction works.
 
 ## Repository shape
 
-```
+~~~text
 /
 ├─ AGENTS.md
 ├─ README.md
@@ -41,96 +39,144 @@ Do **not** add CopilotKit initially. A standard React UI is sufficient for the P
 │  └─ core/
 ├─ docs/
 │  ├─ adr/
-│  └─ ...
+│  ├─ examples/
+│  └─ research/
 └─ tests/
-```
+   └─ evals/
+~~~
 
-This is the maximum useful separation initially. Do not split into more packages until code pressure demands it.
+Do not split into more packages before real code pressure exists.
 
-## Core domain types
+## External AI adapters
 
-```ts
+### Jev / TypeSafe
+
+Use the official TypeScript SDK inside the adapter:
+
+~~~bash
+pnpm add @typesafe-ai/sdk
+~~~
+
+Environment:
+
+~~~text
+TYPESAFE_API_KEY=...
+TYPESAFE_MODEL=jev-1.13.0
+~~~
+
+Use a pinned model version for eval work. jev-latest can be used during exploration.
+
+Read docs/17-typesafe-ai-reference.md before implementing.
+
+### General-purpose LLM
+
+The first reference adapter uses the official OpenAI JavaScript SDK / Responses API behind our LanguageModel port.
+
+Environment:
+
+~~~text
+OPENAI_API_KEY=...
+LLM_PROVIDER=openai
+LLM_MODEL=<configured model>
+~~~
+
+The exact model ID is deployment config, not domain code.
+
+GitHub Copilot SDK, Microsoft Agent Framework, LangChain and Strands remain harness experiments described in docs/10 and docs/research.
+
+## Identity / correlation types
+
+~~~ts
 type SessionId = string;
 type TraceId = string;
+type UtteranceId = string;
+type SemanticEventId = string;
+type ToolCallId = string;
+type ApprovalId = string;
+~~~
 
-type AgentInput = {
-  sessionId: SessionId;
-  text: string;
-  attachments?: AttachmentRef[];
+For the POC, traceId is also the semantic processing-run ID. Do not introduce a separate runId yet.
+
+## Jev question and answer types
+
+Do not use one generic Decision<T> shape.
+
+~~~ts
+type NoulDecisionQuestion = {
+  type: "noul";
+  instructions: JsonValue;
+  criteria?: {
+    true?: JsonValue;
+    false?: JsonValue;
+  };
 };
 
-type Decision<T> = {
-  value: T;
-  confidence?: number;
-  probabilities?: Record<string, number>;
-  provider: "jev" | "fake";
-  latencyMs?: number;
+type ChoiceDecisionQuestion = {
+  type: "choice";
+  instructions: JsonValue;
+  criteria: Record<string, JsonValue | null>;
 };
 
-type Route =
-  | { kind: "deterministic"; handler: string }
-  | { kind: "llm"; modelClass: "fast" | "reasoning" }
-  | { kind: "needs_clarification"; reason: string }
-  | { kind: "needs_approval"; action: ProposedAction };
-
-type ProposedAction = {
-  toolId: string;
-  input: unknown;
+type ScoreDecisionQuestion = {
+  type: "score";
+  instructions: JsonValue;
+  criteria: JsonValue[];
 };
 
-type TurnResult = {
-  response: string;
-  route: Route;
-  traceId: TraceId;
+type DecisionQuestion =
+  | NoulDecisionQuestion
+  | ChoiceDecisionQuestion
+  | ScoreDecisionQuestion;
+
+type NoulDecisionAnswer = {
+  type: "noul";
+  noul: number;
 };
-```
 
-Exact types may evolve, but preserve the separation between **evidence**, **decision**, **policy**, and **execution**.
+type ChoiceDecisionAnswer<T extends string = string> = {
+  type: "choice";
+  choice: T;
+  probabilities: Record<T, number>;
+  confidence: number;
+};
 
-## Voice event types
+type ScoreDecisionAnswer = {
+  type: "score";
+  score: number;
+  legend: Record<string, string>;
+  probabilities: Record<string, number>;
+  confidence: number;
+};
 
-Core must not depend on OpenAI/Gemini/xAI event names.
+type DecisionAnswer =
+  | NoulDecisionAnswer
+  | ChoiceDecisionAnswer
+  | ScoreDecisionAnswer;
 
-Start with a small canonical vocabulary:
+type DecisionRequest = {
+  state: JsonValue;
+  questions: Record<string, DecisionQuestion>;
+  model?: string;
+};
 
-```ts
-type SpeechEvent =
-  | { type: "speech.started"; utteranceId: string; at: number }
-  | {
-      type: "transcript.partial";
-      utteranceId: string;
-      revision: number;
-      text: string;
-      at: number;
-    }
-  | {
-      type: "transcript.revised";
-      utteranceId: string;
-      revision: number;
-      replacesRevision: number;
-      text: string;
-      at: number;
-    }
-  | {
-      type: "transcript.final";
-      utteranceId: string;
-      revision: number;
-      text: string;
-      at: number;
-    }
-  | { type: "speech.ended"; utteranceId: string; at: number }
-  | { type: "response.interrupted"; responseId: string; at: number };
-```
+type DecisionResponse = {
+  model: string;
+  answers: Record<string, DecisionAnswer>;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+  latencyMs: number;
+};
+~~~
 
-The Transcript Ledger stores these events and materializes the current transcript view.
+Noul does not have a separate confidence value.
 
-Do not collapse provider correction and user semantic correction into the same concept.
+## Core ports
 
-## Ports
+Keep application-owned interfaces small.
 
-Keep small interfaces for volatile external systems:
-
-```ts
+~~~ts
 interface DecisionEngine {
   decide(request: DecisionRequest): Promise<DecisionResponse>;
 }
@@ -139,8 +185,8 @@ interface LanguageModel {
   generate(request: GenerationRequest): Promise<GenerationResponse>;
 }
 
-interface ToolExecutor {
-  execute(call: ValidatedToolCall): Promise<ToolResult>;
+interface ToolGateway {
+  proposeAndMaybeExecute(proposal: ToolProposal): Promise<ToolGatewayResult>;
 }
 
 interface SessionStore {
@@ -148,16 +194,258 @@ interface SessionStore {
   save(state: SessionState): Promise<void>;
 }
 
-interface TraceSink {
-  record(event: TraceEvent): Promise<void>;
+interface TraceRecorder {
+  append(event: TraceEvent): Promise<void>;
+  read(traceId: TraceId): Promise<TraceEvent[]>;
+  subscribe(traceId: TraceId): AsyncIterable<TraceEvent>;
 }
-```
+~~~
 
-Voice has two intentionally different capability shapes.
+Initial DecisionEngine implementations:
 
-For control-first voice:
+~~~text
+FakeDecisionEngine
+TypeSafeDecisionEngine
+~~~
 
-```ts
+The fake returns the **same typed answer union** as the real adapter.
+
+## Semantic input
+
+Text submissions and voice semantic checkpoints enter the same core operation.
+
+~~~ts
+type SemanticInput = {
+  traceId: TraceId;
+  sessionId: SessionId;
+  source: "text" | "voice" | "ui" | "tool" | "approval";
+  text?: string;
+  voice?: {
+    utteranceId: UtteranceId;
+    fromRevision: number;
+    toRevision: number;
+    isSpeechEnded: boolean;
+  };
+  at: number;
+};
+~~~
+
+Raw transcript deltas do not call orchestration directly. The voice coordinator / checkpoint scheduler decides when to create SemanticInput.
+
+## Semantic frame
+
+The application enriches SemanticInput with facts it already owns:
+
+~~~ts
+type SemanticFrame = {
+  input: SemanticInput;
+
+  recentContext: {
+    transcriptTail?: string;
+    recentMessages?: string[];
+  };
+
+  activeState: {
+    events: SemanticEvent[];
+    unresolvedFields: string[];
+  };
+
+  runtime: {
+    availableTools: ToolSummary[];
+    allowedModelClasses: Array<"fast" | "reasoning">;
+    hardConstraints: string[];
+  };
+
+  memory: MemorySignal[];
+
+  evidence: EvidenceRef[];
+};
+~~~
+
+No LLM is required to build this frame.
+
+## Session state
+
+~~~ts
+type SessionState = {
+  id: SessionId;
+  version: number;
+  activeEvents: SemanticEvent[];
+  pendingApprovalIds: ApprovalId[];
+  shortTermSignals: MemorySignal[];
+  lastTraceId?: TraceId;
+  createdAt: number;
+  updatedAt: number;
+};
+~~~
+
+Transcript evidence lives in speech_events / Transcript Ledger, not as the only session model.
+
+## Semantic event
+
+~~~ts
+type SemanticEvent = {
+  id: SemanticEventId;
+  type: string;
+  status:
+    | "draft"
+    | "soft_committed"
+    | "sealed"
+    | "closed"
+    | "cancelled";
+  fields: Record<string, unknown>;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+};
+~~~
+
+The application mutation vocabulary is:
+
+~~~text
+CREATE
+PATCH
+MERGE
+CLOSE
+CANCEL
+IGNORE
+WAIT
+~~~
+
+## Execution semantics
+
+### Milestones 1-3
+
+One semantic input is one bounded single-pass execution:
+
+~~~text
+frame
+ -> Jev
+ -> policy
+ -> deterministic mutation OR optional one LLM call
+ -> completion check
+ -> stop
+~~~
+
+No autonomous loop.
+
+### Milestone 4+
+
+Tool-capable paths may use a bounded step loop:
+
+~~~text
+maxSteps = 4
+maxToolCalls = 3
+~~~
+
+Stop on:
+
+- completed;
+- needs clarification;
+- awaiting approval;
+- denied;
+- unrecoverable failure;
+- max steps.
+
+Never run an unbounded agent loop.
+
+## Orchestrator sketch
+
+~~~ts
+async function processSemanticInput(input: SemanticInput): Promise<void> {
+  const state = await sessions.loadOrCreate(input.sessionId);
+  const frame = await buildSemanticFrame(input, state);
+
+  await traces.append(traceEvent("input.received", frame));
+
+  const answers = await decisionEngine.decide(
+    questionRegistry.build("pre_turn_v1", frame),
+  );
+
+  const route = policy.route(frame, answers);
+
+  switch (route.kind) {
+    case "wait":
+      await finish("needs_clarification");
+      return;
+
+    case "deterministic":
+      await applySemanticMutation(route.mutation);
+      await finish("completed");
+      return;
+
+    case "llm":
+      await runOneLlmStep(frame, route);
+      await finish("completed");
+      return;
+  }
+}
+~~~
+
+The concrete implementation will include error/fallback handling from docs/18-runtime-contracts.md.
+
+## Voice event model
+
+Provider SDK objects must not leak into core.
+
+~~~ts
+type SpeechEvent =
+  | {
+      type: "speech.started";
+      sessionId: SessionId;
+      utteranceId: UtteranceId;
+      at: number;
+    }
+  | {
+      type: "transcript.partial";
+      sessionId: SessionId;
+      utteranceId: UtteranceId;
+      revision: number;
+      text: string;
+      at: number;
+    }
+  | {
+      type: "transcript.revised";
+      sessionId: SessionId;
+      utteranceId: UtteranceId;
+      revision: number;
+      replacesRevision: number;
+      text: string;
+      at: number;
+    }
+  | {
+      type: "transcript.final";
+      sessionId: SessionId;
+      utteranceId: UtteranceId;
+      revision: number;
+      text: string;
+      at: number;
+    }
+  | {
+      type: "speech.ended";
+      sessionId: SessionId;
+      utteranceId: UtteranceId;
+      at: number;
+    }
+  | {
+      type: "response.interrupted";
+      sessionId: SessionId;
+      responseId: string;
+      at: number;
+    };
+~~~
+
+The Transcript Ledger preserves revisions.
+
+The Semantic Checkpoint Scheduler decides **when** to ask Jev. Jev decides **what** the evidence means.
+
+See docs/16-streaming-checkpoint-scheduler.md.
+
+## Voice ports
+
+Control-first mode:
+
+~~~ts
 interface SpeechInput {
   pushAudio(frame: AudioFrame): Promise<void>;
   events(): AsyncIterable<SpeechEvent>;
@@ -167,103 +455,180 @@ interface SpeechOutput {
   speak(request: SpeakRequest): AsyncIterable<OutputAudioEvent>;
   cancel(responseId: string): Promise<void>;
 }
-```
+~~~
 
-For native realtime speech-to-speech:
+Native realtime mode:
 
-```ts
+~~~ts
 interface RealtimeVoiceSession {
   sendAudio(frame: AudioFrame): Promise<void>;
   sendToolResult(result: ToolResult): Promise<void>;
   cancelResponse(): Promise<void>;
   events(): AsyncIterable<RealtimeVoiceEvent>;
 }
-```
+~~~
 
-Do not force the two modes into one lowest-common-denominator interface.
+Do not flatten these into one misleading abstraction.
 
-Do not create a generic provider framework. Implement the exact methods the application needs.
+## API surface
 
-## Orchestrator pseudocode
+### Create semantic run
 
-Text and voice semantic checkpoints enter the same core operation:
+~~~http
+POST /api/sessions/:sessionId/runs
+~~~
 
-```ts
-async function handleSemanticInput(input: SemanticInput): Promise<TurnResult> {
-  const state = await sessions.loadOrCreate(input.sessionId);
-  const normalized = normalize(input, state);
+Returns immediately after trace creation:
 
-  const pre = await decisions.decide(buildPreflightQuestions(normalized));
-  const route = policy.route(pre, normalized);
+~~~http
+202 Accepted
+~~~
 
-  const outcome =
-    route.kind === "deterministic"
-      ? await deterministicHandlers.run(route, normalized)
-      : route.kind === "llm"
-        ? await runLlmPath(route, normalized)
-        : route;
-
-  const checked = await evaluateOutcome(outcome, normalized);
-  await persistTurn(state, normalized, checked);
-
-  return checked;
+~~~json
+{
+  "traceId": "tr_...",
+  "status": "running"
 }
-```
+~~~
 
-Raw transcript deltas do not call this function directly. A voice coordinator creates semantic checkpoints first.
+The same process schedules the run asynchronously. No external queue is required.
 
-If the real code becomes substantially more complicated than this before multiple use cases exist, stop and simplify.
+### Trace
 
-## Voice coordinator
+~~~http
+GET /api/traces/:traceId
+GET /api/traces/:traceId/events
+~~~
 
-The initial coordinator only needs to:
+The events endpoint is SSE.
 
-1. accept normalized speech events,
-2. append them to the Transcript Ledger,
-3. decide when a semantic checkpoint exists,
-4. call core orchestration with bounded context,
-5. reconcile later revisions into draft/soft-committed structured events,
-6. cancel stale assistant output on interruption.
+### Session
 
-Do not implement a generic streaming workflow engine.
+~~~http
+GET /api/sessions/:sessionId
+~~~
+
+### Approval
+
+~~~http
+POST /api/approvals/:approvalId/decision
+~~~
+
+### Voice
+
+~~~text
+WS /api/voice/sessions/:sessionId
+~~~
+
+for the first server-mediated control-first path.
+
+## Trace architecture
+
+There is one application trace abstraction.
+
+~~~text
+TraceRecorder
+  -> SQLite trace_events       source of truth / replay
+  -> in-process TraceBus       live SSE
+  -> OpenTelemetry            operational mirror/export
+  -> stdout JSON              debug convenience
+~~~
+
+Inspector reads SQLite history and the live TraceBus stream.
+
+OpenTelemetry and stdout are not application state.
+
+See docs/04-observability.md.
+
+## Tool proposal
+
+Prefer provider-native function/tool calling when available.
+
+Normalize every proposal:
+
+~~~ts
+type ToolProposal = {
+  callId: ToolCallId;
+  sessionId: SessionId;
+  traceId: TraceId;
+  source: "llm" | "realtime_voice" | "workflow" | "ui";
+  toolId: string;
+  input: JsonValue;
+  semanticContext: {
+    userGoal?: string;
+    activeEventIds: SemanticEventId[];
+  };
+};
+~~~
+
+Adapters without native tools may use structured JSON internally, but core consumes only ToolProposal.
+
+## Approvals
+
+Approval is created only after a concrete validated ToolProposal exists.
+
+First local demo identity is a fixed development fixture, not real authentication.
+
+Persist approvals in SQLite and resume a paused run after approval.
+
+See docs/18-runtime-contracts.md.
 
 ## Persistence
 
 Initial SQLite tables:
 
-- `sessions`
-- `turns`
-- `trace_events`
-- `memory_candidates`
-- `speech_events` when voice is enabled
+~~~text
+sessions
+semantic_events
+turns
+trace_events
+speech_events
+approvals
+tool_calls
+memory_candidates
+memory_signals
+~~~
 
-Store JSON payloads where schemas are still evolving. Normalize only data that must be queried/indexed.
+Suggested minimal responsibilities:
 
-Raw audio retention is not required and should be off by default.
+- sessions: session metadata/version;
+- semantic_events: current card/event state;
+- turns: submitted text/semantic run summary;
+- trace_events: ordered Inspector source of truth;
+- speech_events: Transcript Ledger evidence;
+- approvals: pending/resolved approval state;
+- tool_calls: normalized proposal/result lifecycle;
+- memory_candidates: uncommitted classifications;
+- memory_signals: persisted readable memory.
 
-## API surface
+Store JSON for evolving schemas. Normalize only fields needed for lookup/indexing.
 
-Start small:
+Raw audio is not persisted by default.
 
-- `POST /api/sessions/:id/turns`
-- `GET /api/sessions/:id`
-- `GET /api/traces/:id`
-- `GET /api/traces/:id/events` (SSE)
-- `POST /api/approvals/:id`
-- `WS /api/voice/sessions/:id` for the initial server-mediated voice path
+## Memory read path
 
-A later native provider adapter may use a client-direct WebRTC/WebSocket connection secured with provider-supported ephemeral credentials while a sideband/control connection keeps tools and telemetry under application ownership.
+Milestone 5 reads memory into SemanticFrame.
 
-## Provider capability registry
+Initial retrieval is deterministic:
 
-Do not branch core code on provider names.
+- all active short-term signals for current session;
+- non-superseded long-term signals matching explicit kind/key;
+- small recent domain-relevant set.
 
-An adapter may publish capabilities such as:
+Do not add vector search yet.
 
-```ts
+See docs/13-session-retro-memory.md.
+
+## Provider capabilities
+
+Voice adapters can publish capability metadata:
+
+~~~ts
 type VoiceCapabilities = {
   nativeSpeechToSpeech: boolean;
   streamingInputTranscript: boolean;
+  hasInterimTranscript: boolean;
+  hasFinalTranscript: boolean;
   inputTranscriptRevisions: boolean;
   outputTranscript: boolean;
   serverVad: boolean;
@@ -271,35 +636,85 @@ type VoiceCapabilities = {
   bargeIn: boolean;
   toolCalling: boolean;
   asyncTools: boolean;
+  sessionResumption: boolean;
+  browserEphemeralAuth: boolean;
 };
-```
+~~~
 
-These flags inform session setup and tests; they are not a reason to build a large provider framework.
+Use this for tests/session setup, not as a reason to build a huge provider framework.
+
+See docs/research/2026-09-25-voice-api-capability-matrix.md.
 
 ## Model routing
 
-There are two different choices:
+Separate:
 
-1. **voice session selection** — provider/model/voice/transport chosen for a realtime session;
-2. **reasoning routing** — deterministic handler vs fast model vs reasoning model selected per semantic task.
+1. voice-session provider/model selection;
+2. per-semantic-task reasoning route.
 
-Do not continuously replace the live voice model because a JEV classification changes. A realtime model can remain the conversational shell while bounded backend reasoning uses another model.
+A live voice model may remain the conversational shell while a backend reasoning model handles a complex task.
 
-## Configuration
+## Jev fallback
 
-Environment variables only for secrets and deployment-specific values.
+Fallback is explicit and stage-specific.
 
-Policy thresholds should live in versioned config/code so changes are reviewable.
+- semantic/pre-turn: use configured baseline LLM classifier if available, otherwise wait/clarify;
+- tool gating: fail safe; require approval or deny rather than execute;
+- completion: respect step bound and return degraded/incomplete rather than loop.
 
-Voice provider/model names should be configuration, not domain logic.
+Trace all fallback use.
+
+## Privacy
+
+Milestone 1 already enforces:
+
+- no persisted raw audio by default;
+- no API keys/auth headers in traces;
+- redaction before trace persistence;
+- configurable trace content mode.
+
+~~~text
+TRACE_CONTENT_MODE=full | redacted | metadata-only
+~~~
+
+Defaults:
+
+~~~text
+local:    full
+deployed: redacted
+~~~
+
+## Inspector toggle
+
+Inspector is runtime UI state, not a build-time flag.
+
+~~~text
+[ App ] [ Lab / Inspector ]
+~~~
+
+The same execution always records traces.
 
 ## Failure handling
 
-- External AI timeout -> typed failure, trace it, do not silently retry forever.
-- One bounded retry is acceptable for transient network failures.
-- Invalid LLM or voice-model tool proposal -> reject before execution.
-- Low-confidence decision -> route to clarification or LLM according to policy.
-- JEV unavailable -> explicit fallback policy, not accidental behavior.
-- Voice connection loss -> preserve ledger/session state and expose reconnect state.
-- User barge-in -> cancel stale output and record interruption.
-- Late transcript revision -> patch only state still inside its correction horizon; never silently rewrite an already-executed consequential action.
+- Jev timeout/unavailable -> explicit stage fallback;
+- rate limit/overload -> SDK retry/backoff, then fallback;
+- LLM timeout -> typed failure, bounded retry at most once;
+- invalid tool proposal -> reject;
+- voice disconnect -> preserve ledger/session state;
+- barge-in -> cancel stale output and trace interruption;
+- late transcript revision -> patch only still-revisable semantic state;
+- max steps -> stop and return degraded/needs clarification.
+
+## Evaluation
+
+Implementation claims are measured against the LLM-first baseline and checked-in fixtures.
+
+Read docs/19-first-demo-and-evaluation.md.
+
+## Important cross-references
+
+- TypeSafe concrete API: docs/17-typesafe-ai-reference.md
+- runtime/approval/trace decisions: docs/18-runtime-contracts.md
+- first demo + evals: docs/19-first-demo-and-evaluation.md
+- UI: docs/20-ui-ux-design.md
+- voice scheduler: docs/16-streaming-checkpoint-scheduler.md
