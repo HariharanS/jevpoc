@@ -57,18 +57,22 @@ JEV can add semantic signals but should not be the only safety boundary.
 
 ## Proposal envelope
 
+Prefer provider-native function/tool calling where supported.
+
+If a provider has no native tool call protocol, its adapter may use structured JSON internally, but core must never interpret arbitrary prose as an executable action.
+
 Normalize every model/framework proposal:
 
 ~~~ts
 type ToolProposal = {
   callId: string;
   sessionId: string;
+  traceId: string;
   source:
     | "llm"
     | "realtime_voice"
     | "workflow"
-    | "ui"
-    | "user";
+    | "ui";
 
   toolId: string;
   input: unknown;
@@ -118,22 +122,49 @@ JEV should **not** replace exact checks such as:
 
 ## Human approval
 
-Approval is explicit state.
+Approval is explicit state and begins **only after a concrete ToolProposal exists and has passed basic validation**.
+
+Do not create a route such as needs_approval before the runtime knows exactly what action is being approved.
 
 ~~~text
-tool proposal
-   |
-   v
-approval_required
-   |
-   +--> pending
-   |
-   +--> approved -> execute
-   |
-   +--> rejected -> return structured rejection
+model / workflow proposes tool
+        |
+        v
+normalize ToolProposal
+        |
+        v
+schema + hard permission checks
+        |
+        v
+Jev semantic/risk checks if needed
+        |
+        v
+deterministic policy
+        |
+        +--> execute
+        +--> deny
+        +--> create Approval
 ~~~
 
-A model waiting for approval should not silently retry or call an equivalent tool under a different name.
+Approval state:
+
+~~~text
+pending
+  |
+  +--> approved -> resume at validated tool execution
+  |
+  +--> rejected -> return structured rejection
+  |
+  +--> cancelled
+~~~
+
+The first local demo uses a clearly-labelled development identity and self-approval. The family demo later can route routine requests to dad and exceptions/high-impact requests to mum.
+
+This is demo workflow state, not production authentication.
+
+A model waiting for approval must not silently retry or call an equivalent tool under another name.
+
+See docs/18-runtime-contracts.md for Approval shape, demo identity and resume behavior.
 
 ## Idempotency
 
@@ -265,6 +296,25 @@ tool.executed
 
 tool.result_returned_to_model
 ~~~
+
+## Paused run / resume semantics
+
+When approval is required:
+
+1. persist Approval;
+2. mark the semantic run awaiting_approval;
+3. stop the step loop;
+4. return/display the approval card;
+5. after a decision, resume from the already-validated ToolProposal;
+6. do not blindly rerun the original user prompt.
+
+Endpoint:
+
+~~~http
+POST /api/approvals/:approvalId/decision
+~~~
+
+The approval record retains toolCallId, traceId, proposal, requested approver role and decision evidence.
 
 ## Initial implementation
 
