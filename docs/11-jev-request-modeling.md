@@ -32,7 +32,7 @@ JEV does not need to generate prose.
 
 > **Do not use an LLM to decide what questions to ask JEV for routine runtime decisions.**
 
-If we need an LLM to interpret the request before every JEV call, we lose much of JEV's value as a cheap/fast System One decision layer.
+If we need an LLM to interpret the request before every JEV call, we lose much of JEV's value as a fast/low-cost System One decision layer. The actual latency/cost benefit must still be measured against the checked-in LLM-first baseline; see docs/19.
 
 Instead:
 
@@ -466,9 +466,9 @@ Example:
 ~~~text
 tests/evals/
   pre-turn-routing.jsonl
-  voice-corrections.jsonl
-  tool-risk.jsonl
-  completion.jsonl
+  voice-semantic-update.jsonl
+  scenarios.jsonl
+  tool-gating.jsonl
   memory-scope.jsonl
 ~~~
 
@@ -488,7 +488,7 @@ Illustrative voice semantic checkpoint:
 
 ~~~json
 {
-  "model": "jev-latest",
+  "model": "jev-1.13.0",
   "state": {
     "request": {
       "text": "ah no, I mean water",
@@ -549,22 +549,33 @@ Expected application behavior is not hard-coded from this example response.
 
 The runtime reads JEV answers, applies calibrated policy, and patches evt_hydration_1 rather than creating an unrelated second event.
 
-## API references
+## Concrete TypeSafe reference
 
-The currently documented TypeSafe/JEV protocol uses:
+The implementation contract is now centralized in docs/17-typesafe-ai-reference.md.
 
-- POST https://api.typesafe.ai/v1/systemone;
-- top-level state, model, and questions;
-- typed Noul/Choice/Score questions;
-- answers keyed by application question IDs.
+Official sources:
 
-Reference material:
+- Introduction:
+  https://docs.typesafe.ai/introduction
+- API:
+  https://docs.typesafe.ai/api
+- JavaScript SDK:
+  https://docs.typesafe.ai/sdk/javascript
+- Primitives:
+  https://docs.typesafe.ai/primitives
+- Agent skill:
+  https://docs.typesafe.ai/agent-skill
 
-- LangChain's 2026-09-17 Jev harness article:
-  https://www.langchain.com/blog/building-a-harness-with-jev
-- TypeSafe community/reference index:
-  https://www.typesafeai.org/tools
-- API contract reference snapshot:
-  https://jevwiki.ai/wiki/reference/http-api.md
+Implementation rules:
 
-Provider API details are early and may evolve. Keep the application-owned DecisionEngine adapter small and version the question sets.
+- use the official @typesafe-ai/sdk inside TypeSafeDecisionEngine;
+- authenticate with TYPESAFE_API_KEY;
+- use top-level state, model and questions;
+- preserve Noul / Choice / Score answer shapes;
+- pin a model version for benchmark runs;
+- batch independent questions over the same state;
+- version application question sets;
+- keep TypeSafe SDK types inside the adapter.
+
+For agent/harness context also see:
+https://www.langchain.com/blog/building-a-harness-with-jev
