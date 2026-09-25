@@ -1,51 +1,146 @@
 # Decision status and open experiments
 
-> **Status:** Normative planning reference  
+> **Status:** Normative planning reference
 > **Last updated:** 2026-09-25
 
-This file answers: **What should an implementation agent build, what should it spike, and what should it leave alone?**
+This file answers:
 
-## Implement
+> What should an implementation agent build, what is already decided, what still needs a spike, and what should it leave alone?
+
+## First demo is decided
+
+Build:
+
+> **Live Intent Workspace — text-first mixed-intent/correction, then the same semantic runtime over streaming voice.**
+
+Reference:
+- docs/19-first-demo-and-evaluation.md
+- docs/examples/01-mixed-utterance-end-to-end.md
+- docs/20-ui-ux-design.md
+
+Model routing is a supporting capability/baseline, not the primary demo.
+
+## Implement — decisions are made
 
 | Area | Current direction | Evidence/design |
 |---|---|---|
-| Core runtime | Application-owned thin semantic/JEV/policy layer | 01, 10, ADR 0002 |
-| JEV inputs | Bounded SemanticFrame + versioned question registry | 11 |
-| State | Explicit SemanticEvent identity + CREATE/PATCH/MERGE/SEAL | 12 |
-| UI | React, typed application components, App + Inspector modes | 09, 12, 04 |
-| Tools | Provider-neutral Tool Gateway with deterministic policy/approval | 14 |
-| Persistence | SQLite locally | 02, ADR 0001 |
-| Telemetry | Structured trace + OpenTelemetry + Inspector event stream | 04 |
-| Voice semantic model | Transcript Ledger + hybrid Semantic Checkpoint Scheduler + semantic checkpoints | 08, 16 |
-| Memory | Episode candidates + JEV classification + deterministic write policy | 13 |
+| Product | Live intent workspace; language -> semantic state -> UI | 09, 19 |
+| Core runtime | Application-owned thin semantic/Jev/policy layer | 01, 10, ADR 0002 |
+| TypeSafe/Jev | Hosted API via official @typesafe-ai/sdk behind DecisionEngine | 17, 18 |
+| Jev inputs | Bounded SemanticFrame + versioned question registry | 11, 17 |
+| Decision answers | Typed Noul / Choice / Score union | 17, 18, 02 |
+| First demo | Mixed-intent correction scenario, text then voice | 19, examples/01 |
+| State | Stable SemanticEvent IDs + CREATE/PATCH/MERGE/SEAL | 12, 18 |
+| UI | Three-column Lab UI + App mode + Inspector drawer | 20 |
+| Tools | Provider-neutral Tool Gateway | 14, 18 |
+| Approvals | Only after validated ToolProposal; persisted pause/resume | 14, 18 |
+| Persistence | node:sqlite + plain SQL locally | 02, 18, ADR 0001 |
+| Trace | SQLite trace_events source of truth + TraceBus + OTel mirror | 04, 18 |
+| Live Inspector | POST returns traceId immediately; SSE follows live trace | 04, 18 |
+| Voice semantic model | Transcript Ledger + hybrid Checkpoint Scheduler + Jev | 08, 16 |
+| Memory | Structured candidate extraction + Jev classification + deterministic readback | 13, 18 |
+| LLM baseline | OpenAI JS SDK behind LanguageModel; model ID configured | 18, 19 |
+| Tooling | pnpm, Node22, TypeScript, React/Vite, Fastify, Zod, Vitest, Biome | 02, 18 |
+| Privacy | Redaction/no raw audio persistence from Milestone 1 | 04, 18 |
+| Eval | JSONL fixtures + LLM-first baseline + benchmark report | 19, tests/evals |
 
-## Implement as a vertical slice, not as a framework
+## Implement as a vertical slice
 
 First useful proof:
 
 ~~~text
-typed or streamed input
+simulated incremental text
    -> SemanticFrame
-   -> fake/real JEV question set
-   -> policy
+   -> FakeDecisionEngine
+   -> deterministic policy
    -> SemanticEvent CREATE/PATCH
-   -> typed UI card
-   -> trace visible in Inspector
+   -> three-column Lab UI
+   -> SQLite + live Inspector trace
 ~~~
 
-Then add one governed tool.
+Then:
 
-Then add the mixed-utterance voice scenario.
+~~~text
+FakeDecisionEngine
+   -> TypeSafeDecisionEngine
+   -> fixture benchmark
+   -> LLM baseline/escalation
+   -> one governed tool
+   -> memory readback
+   -> real streaming voice
+~~~
 
-For continuous/yapping input, implement the small hybrid checkpoint scheduler from doc 16. Do not call JEV or an LLM on every STT partial, and do not wait for a whole long utterance before doing any semantic work.
+Do not build a generalized harness first.
+
+## TypeSafe/Jev is no longer ambiguous
+
+Concrete integration is documented in docs/17-typesafe-ai-reference.md.
+
+Implementation assumptions:
+
+~~~text
+SDK:       @typesafe-ai/sdk
+auth:      TYPESAFE_API_KEY
+model:     configured; pin version for evals
+input:     JSON/text state + typed questions
+output:    Noul / Choice / Score answers
+batching:  independent questions sharing state in one request
+behavior:  probabilistic; thresholds calibrated from fixtures
+~~~
+
+AI coding agents working on Jev should read/use the official TypeSafe agent skill before modifying the adapter/question sets.
+
+## Turn/loop behavior is decided
+
+### Milestones 1-3
+
+One semantic checkpoint/run is bounded single-pass.
+
+No autonomous loop.
+
+### Milestone 4+
+
+Tool-capable path is bounded:
+
+~~~text
+maxSteps = 4
+maxToolCalls = 3
+~~~
+
+Terminal states include:
+
+- completed;
+- needs clarification;
+- awaiting approval;
+- denied;
+- degraded/failure;
+- step limit reached.
+
+No unbounded agent loop.
+
+## Jev unavailable behavior is decided
+
+Stage-specific fallback:
+
+- semantic/pre-turn -> configured baseline LLM classifier if available; otherwise WAIT/clarify;
+- consequential tool gating -> fail safe; approval/deny, never fail open;
+- completion -> respect step bound and return degraded/clarification rather than loop forever.
+
+All fallback use is traced.
 
 ## Spike before selecting
 
+These are genuine implementation/provider choices, not missing architecture.
+
 ### Harness
 
-Evaluate the least-complex implementation of the same contract using one or more of:
+Question:
 
-- thin own orchestrator;
+> Which existing harness minimizes our code while preserving raw-request/Jev/model/tool control?
+
+Candidates already researched:
+
+- thin own orchestrator + provider SDK;
 - Microsoft Agent Framework;
 - GitHub Copilot SDK behind our pre-turn layer;
 - LangChain/LangGraph;
@@ -53,67 +148,67 @@ Evaluate the least-complex implementation of the same contract using one or more
 
 Success criteria:
 
-- raw input is available before reasoning-model selection;
-- model class can be selected before the relevant call;
-- tool proposals can pass through Tool Gateway;
-- trace events can correlate model/tool/runtime events;
-- cancellation works;
-- implementation remains smaller than building equivalent machinery ourselves.
+- raw semantic input visible before relevant reasoning-model selection;
+- model class selectable before call;
+- Tool Gateway interception;
+- cancellation;
+- usable event/telemetry hooks;
+- less complexity than reproducing the framework ourselves.
 
-Do not reimplement mature harness features merely for "purity."
+Milestones 0-2 do **not** require a permanent harness choice.
 
-### Checkpoint scheduler tuning
+### Checkpoint scheduler thresholds
 
-The scheduler architecture is chosen, but its thresholds are not.
+Architecture is chosen; tuning is not.
 
-Benchmark:
+Compare:
 
-- JEV calls per minute;
-- useful-state latency;
-- missed intent boundaries;
-- UI flapping;
-- correction patch accuracy;
-- long continuous-speech behavior;
-- cost.
-
-Compare the hybrid scheduler against two explicit baselines: final-transcript-only and LLM-first-after-STT.
-
-### STT/control-first voice provider
-
-Run the same scenario against candidate providers.
+- final-transcript-only;
+- hybrid checkpoint + Jev;
+- LLM-first structured extraction.
 
 Measure:
-
-- first partial latency;
-- final transcript latency;
-- revision/correction behavior;
-- endpointing;
-- correlation quality;
-- SDK/transport complexity;
+- checkpoints/Jev calls per minute;
+- useful-state latency;
+- UI flapping;
+- correction accuracy;
+- long yapping behavior;
 - cost.
+
+### Control-first STT provider
+
+Research shortlist:
+
+- Deepgram Flux;
+- Gemini Live Transcription;
+- xAI Streaming STT or OpenAI Realtime Transcription.
+
+See:
+docs/research/2026-09-25-voice-api-capability-matrix.md
+
+Choose one first adapter from measured evidence, not marketing.
 
 ### Native realtime provider
 
-Evaluate after the control-first path exists.
+Only after control-first semantic behavior works.
 
-Measure:
+Shortlist:
 
-- conversational latency;
-- barge-in;
-- tool-call control;
-- session resumption;
-- event observability;
-- ability to delegate complex reasoning.
+- OpenAI Realtime;
+- Gemini Live;
+- xAI Speech-to-Speech.
+
+The native provider does not replace application-owned Tool Gateway/state/policy.
 
 ### AG-UI / CopilotKit
 
-Only adopt after proving a concrete reduction in code for:
+Adopt only if a spike proves a concrete reduction in:
 
-- typed agent events;
-- human approval;
-- generative/structured UI.
+- agent event plumbing;
+- human approval UI;
+- structured/generative UI.
 
-Core SemanticEvent and Tool Gateway contracts remain ours.
+SemanticEvent and Tool Gateway stay application-owned.
 
 ### Cloud
 
@@ -123,36 +218,63 @@ Compare operational simplicity, not theoretical maximum scale.
 
 ## Research later
 
-These are worthwhile questions but are not required for the first useful product:
+Worth investigating after the first evidence-driven POC:
 
-- JEV-based large tool-catalog activation vs prompt-cache effects;
-- JEV-based context prefetch/relevance;
+- large tool-catalog activation vs prompt-cache behavior;
+- Jev context prefetch/relevance;
 - session-retro automatic artifact suggestions;
-- provider-independent model capability registry;
-- API Journey Compiler retrieval/evidence model;
-- WebMCP adapter for browser actions.
+- richer provider/model capability registry;
+- API Journey Compiler retrieval/evidence pipeline;
+- WebMCP browser adapter;
+- smarter memory retrieval;
+- managed full voice-agent platforms vs our control-first design.
 
-## Deferred until evidence demands them
+## Explicitly deferred
 
+Unless a concrete requirement appears, do not introduce:
+
+- generalized multi-agent supervisor;
+- distributed workflow engine;
 - Durable Objects as mandatory session architecture;
 - Convex as mandatory backend;
-- Step Functions/workflow engine;
+- Step Functions as orchestration backbone;
+- Kafka/EventBridge/event bus;
 - microservices;
-- queue/event bus;
-- vector memory;
+- vector DB;
 - generalized skill/plugin marketplace;
-- multi-agent supervisor;
-- arbitrary generated UI code;
-- implementing every provider.
+- multi-cloud abstraction;
+- background worker fleet;
+- every voice provider simultaneously;
+- arbitrary LLM-generated executable frontend code.
+
+## What proves the idea
+
+The architecture is a hypothesis, not the result.
+
+The POC should report:
+
+- semantic fixture accuracy;
+- correction/PATCH accuracy;
+- duplicate-event rate;
+- LLM skip rate;
+- latency;
+- input cost;
+- number of calls;
+- UI stability;
+- provider/checkpoint behavior.
+
+Compare Jev control plane to the LLM-first baseline.
+
+See docs/19-first-demo-and-evaluation.md.
 
 ## How to change status
 
-If a spike produces evidence that changes one of the chosen directions:
+If a spike produces evidence that changes a chosen direction:
 
-1. write the result under docs/research;
+1. preserve the result under docs/research or docs/evals;
 2. update this status file;
-3. update the relevant normative design;
-4. add an ADR for a durable cross-cutting change;
-5. update tests/evals that encode the old behavior.
+3. update relevant normative docs;
+4. add/update an ADR for durable cross-cutting change;
+5. update fixtures/tests that encode old behavior.
 
 Do not change architecture by silently introducing a library in an implementation PR.
