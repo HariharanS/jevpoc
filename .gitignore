@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+__pycache__/
+.venv/
+.artifacts/
+playwright-report/
+test-results/
+dist/

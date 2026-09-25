@@ -1,0 +1,29 @@
+name: Verify contracts and prototypes
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+      - name: Install isolated contract-check tools
+        run: |
+          python3 -m venv .artifacts/verify
+          .artifacts/verify/bin/python -m pip install -r requirements.txt
+          npm install --prefix .artifacts/tools --no-save --ignore-scripts --no-package-lock typescript@5.8.3
+      - name: Check current repository contracts and references
+        run: |
+          export PATH="$PWD/.artifacts/tools/node_modules/.bin:$PATH"
+          .artifacts/verify/bin/python scripts/validate_repo.py --require-tsc
+      - name: Test the in-memory prototype
+        run: node --test prototypes/runtime/model.test.mjs
