@@ -33,7 +33,8 @@ Read these first:
 10. [First demo and evaluation](19-first-demo-and-evaluation.md) — chosen slice, baseline, fixtures and success metrics.
 11. [Core app experience](21-core-app-experience.md) — voice-orb + cards first, transcript/processing/trace via progressive disclosure.
 12. [UI / UX Lab design](20-ui-ux-design.md) — expanded three-column developer/demo view.
-13. [Implementation plan](07-implementation-plan.md) — build sequence.
+13. [Visual design system and taste](22-visual-design-system-and-taste.md) — spacing, typography, motion, transcript states, mapping behavior and preferred visual reference.
+14. [Implementation plan](07-implementation-plan.md) — build sequence.
 
 Then read the relevant research snapshot for the area you are changing.
 
@@ -124,10 +125,12 @@ These resolve the implementation blockers: concrete typed decision answers, live
 
 - [21 — Core app experience](21-core-app-experience.md)
 - [20 — UI / UX Lab design](20-ui-ux-design.md)
+- [22 — Visual design system and taste](22-visual-design-system-and-taste.md)
+- [Preferred visual reference](ui/taste-reference-v2.svg)
 
 The default product is voice-orb + evolving intent cards. Transcript is optional/compact; processing is collapsible; trace/Inspector is a developer feature toggle inside the same workspace.
 
-The three-column pipeline is the expanded Lab/developer presentation, not the permanent default UI.
+The visual direction is calm, light, spacious, and content-first. The three-column pipeline is the expanded Lab/developer presentation, not the permanent default UI.
 
 ### Observability
 
