@@ -31,8 +31,9 @@ Read these first:
 8. [TypeSafe AI / Jev practical reference](17-typesafe-ai-reference.md) — concrete API/SDK, question/answer shapes, batching, model/limits and agent skill.
 9. [Runtime contracts](18-runtime-contracts.md) — IDs, trace flow, approvals, fallback, loop bounds, memory readback and locked tooling.
 10. [First demo and evaluation](19-first-demo-and-evaluation.md) — chosen slice, baseline, fixtures and success metrics.
-11. [UI / UX design](20-ui-ux-design.md) — three-column Lab UI, voice orb, Intent Canvas and Inspector.
-12. [Implementation plan](07-implementation-plan.md) — build sequence.
+11. [Core app experience](21-core-app-experience.md) — voice-orb + cards first, transcript/processing/trace via progressive disclosure.
+12. [UI / UX Lab design](20-ui-ux-design.md) — expanded three-column developer/demo view.
+13. [Implementation plan](07-implementation-plan.md) — build sequence.
 
 Then read the relevant research snapshot for the area you are changing.
 
@@ -121,9 +122,12 @@ These resolve the implementation blockers: concrete typed decision answers, live
 
 ### UI
 
-- [20 — UI / UX design](20-ui-ux-design.md)
+- [21 — Core app experience](21-core-app-experience.md)
+- [20 — UI / UX Lab design](20-ui-ux-design.md)
 
-The first Lab experience is a three-column pipeline: raw streaming input -> processing/Jev decisions -> typed Intent Canvas, with a bottom trace/observability drawer.
+The default product is voice-orb + evolving intent cards. Transcript is optional/compact; processing is collapsible; trace/Inspector is a developer feature toggle inside the same workspace.
+
+The three-column pipeline is the expanded Lab/developer presentation, not the permanent default UI.
 
 ### Observability
 
