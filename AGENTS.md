@@ -83,6 +83,9 @@ Read `docs/11-jev-request-modeling.md` before changing this behavior.
 - Preserve partial/revised/final transcript evidence in the Transcript Ledger.
 - Never equate transcript finality with execution permission.
 - Do not run a full agent turn for every transcript partial.
+- Treat input/event normalization as bookkeeping, not semantic interpretation.
+- Use the hybrid Semantic Checkpoint Scheduler to decide **when** to ask JEV; JEV decides **what** the new evidence means.
+- Do not add an LLM merely to decide when a checkpoint should occur.
 - Distinguish provider/STT revisions from deliberate user semantic corrections.
 - Handle barge-in/cancellation as first-class events.
 - Keep voice-session provider/model selection separate from per-task reasoning-model routing.
@@ -90,7 +93,7 @@ Read `docs/11-jev-request-modeling.md` before changing this behavior.
 - Do not hide those two modes behind a misleading lowest-common-denominator abstraction.
 - All consequential native-voice tool proposals still pass through Tool Gateway.
 
-Read `docs/08-voice-architecture.md` and the current voice-provider research before changing voice behavior.
+Read `docs/08-voice-architecture.md`, `docs/16-streaming-checkpoint-scheduler.md`, and the current voice-provider research before changing voice behavior.
 
 ## Harness rules
 
