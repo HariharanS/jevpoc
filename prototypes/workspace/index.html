@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Live Intent Workspace · scripted prototype</title>
+  <link rel="stylesheet" href="/prototypes/workspace/styles.css">
+  <script type="module" src="/prototypes/workspace/app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to captured items</a>
+  <header><a class="brand" href="/">jev<span class="brand-dot">.</span></a><span class="eyebrow">LIVE INTENT WORKSPACE</span><span class="prototype-label">E01 / SCRIPTED PROTOTYPE</span></header>
+  <main>
+    <section class="intro"><p class="eyebrow">A LITTLE LESS TO HOLD IN YOUR HEAD</p><h1>Keep talking.<br><span>Let the useful things take shape.</span></h1><p>This is a fixed, six-part demonstration. No microphone, AI provider or notification service is connected.</p></section>
+    <div class="workspace-grid">
+      <section class="input-panel" aria-labelledby="input-heading">
+        <div class="panel-heading"><h2 id="input-heading">The input</h2><span class="tag">SIMULATED</span></div>
+        <div class="listening"><div class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div><strong id="input-status">Ready to replay</strong><span class="meta" id="progress">0 / 6 phrases</span></div><span class="processor" aria-hidden="true"></span></div>
+        <p class="small">A spoken thought becomes a card. A correction changes that card, not its identity.</p>
+        <div id="transcript" class="transcript" tabindex="0" aria-label="Scripted transcript history"><p id="transcript-empty" class="muted">Your first thought would appear here.</p></div>
+        <button id="jump" class="quiet" hidden>↓ Jump to live</button>
+        <div class="controls"><button id="play" class="primary" disabled>Replay story</button><button id="step" disabled>One phrase</button><button id="reset" class="quiet" disabled>Reset</button></div>
+        <p id="status" class="status" role="status" aria-live="polite">Loading the checked-in fixture…</p>
+      </section>
+      <section id="workspace" class="card-panel" aria-labelledby="items-heading" tabindex="-1">
+        <div class="panel-heading"><h2 id="items-heading">Things captured</h2><span id="count" class="meta">0 items</span></div>
+        <p class="small">Select an item to see exactly where it came from.</p>
+        <div id="cards" class="cards"></div>
+        <div id="empty" class="empty"><span aria-hidden="true">＋</span><p>Room for the useful parts.</p><p class="small">No empty category cards. They appear when there is something to keep.</p></div>
+      </section>
+    </div>
+    <details id="developer"><summary>Developer details <span class="meta">IN-MEMORY EXPERIMENT ONLY</span></summary><div class="dev-toolbar"><p class="small">Actual prototype mutations, not model reasoning or backend telemetry.</p><button id="stale" disabled>Try a stale update</button></div><ol id="timeline" class="timeline"></ol></details>
+    <footer><span>Evidence stays visible. Corrections stay connected.</span><span>Local prototype · nothing is scheduled or saved after reload</span></footer>
+  </main>
+  <dialog id="explanation" aria-labelledby="explanation-title"><div class="dialog-top"><h2 id="explanation-title">How this was understood</h2><button id="close" aria-label="Close explanation">Close</button></div><div id="explanation-body"></div></dialog>
+</body>
+</html>

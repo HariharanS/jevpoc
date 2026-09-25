@@ -1,0 +1,1 @@
+Read AGENTS.md, BUILD.md and STATUS.md. Current contracts are in docs/RUNTIME.md, docs/PRODUCT.md, docs/UI.md and contracts/mvp.schema.json. tasks.json is the task queue. Follow the same instructions as any other model. prototypes/ is labelled experimental code, not completed M1. Do not restore superseded numbered docs or duplicate these rules here.
