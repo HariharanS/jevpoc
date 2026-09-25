@@ -38,7 +38,7 @@ Replace SQLite with Postgres when one of these becomes true:
 - hosted ephemeral disks make SQLite awkward,
 - operational querying/backups justify it.
 
-Only the `SessionStore` / `TraceStore` adapters should change.
+Only persistence adapters should change. In particular, the application-owned SessionStore and TraceRecorder contracts remain stable while their SQLite implementations can be replaced with managed persistence.
 
 ## Where Durable Objects may fit
 
