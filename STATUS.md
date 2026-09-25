@@ -4,16 +4,19 @@ Updated 25 September 2026. **The repository is a consolidated specification plus
 
 | Area | Actual state |
 |---|---|
-| Documentation adoption D00 | Canonical current docs, one schema, root instructions, plan, review/migration ledger and scoped experiments written. Superseded active numbered docs/old SVGs retired; Git history preserved. |
+| Documentation adoption D00 | Canonical current docs, one schema, root instructions, plan, review/migration ledger and scoped experiments written and repository-validated. Superseded active numbered docs/old SVGs retired; Git history preserved. |
 | E01 interaction prototype | Implemented. Fixed script, warm workspace, four cards, same-ID correction, selected evidence, optional timeline and stale-result probe. |
-| E02 state probe | Implemented and tested: 16 passing in-memory tests. |
+| E02 state probe | Implemented and tested: 16 passing in-memory tests locally and on GitHub Actions. |
 | Contract/data checks | Eight scenarios, 16 requests, 13 expected events, 31 exact evidence spans; 14 negative cases; generated TypeScript compiled; actual E02 outputs schema-validated. |
-| Browser smoke | Passed at 1440/768/360px in explicitly offline injected-DOM mode. Local browser network navigation was blocked by the environment; served-browser mode remains a separate CI/manual check. |
+| Repository checks | GitHub Actions verified 17 acyclic tasks, 30 acceptance references, local Markdown targets and absence of the retired active tree. See the dated run below. |
+| Browser smoke | Passed at 1440/768/360px in explicitly offline injected-DOM mode. Local browser network navigation was blocked by the environment; served-browser mode remains a separate manual check. |
 | Prototype HTTP server | Allowlisted asset serving and untrusted Host rejection tested separately. Not an application API. |
 | M0–1 application B00–B08 | **Not started.** No React/Fastify/SQLite production implementation yet. |
 | Real JEV / LLM / voice / tools / memory / hosting | **Not implemented or benchmarked.** No paid provider requests made. |
 
-Verification commands, limitations and CI entry point: [docs/VALIDATION.md](docs/VALIDATION.md).
+Initial full repository CI evidence: [successful run 36109025828](https://github.com/HariharanS/jevpoc/actions/runs/36109025828), for head commit `8633682815edeb28357ed452a938d8d1ebcc3622` (GitHub tested its PR merge tree). Later commits have their own Actions results.
+
+Verification commands and limitations: [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ## Next coding-agent task
 

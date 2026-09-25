@@ -18,9 +18,17 @@ Environment: Node 22.16.0; TypeScript 5.8.3; Python 3.13; jsonschema 4.26.0; sys
 
 The default served-browser smoke attempt was blocked by this execution environment's Chromium administrator network policy. The successful inline mode loads the same local HTML/CSS and controlled script/fixture content into the DOM, but does not prove browser HTTP import loading or CSP. The HTTP server itself was tested separately. This is a smoke check, not a comprehensive accessibility, cross-browser or performance audit.
 
+## Executed on GitHub
+
+[Run 36109025828](https://github.com/HariharanS/jevpoc/actions/runs/36109025828) passed against PR #1 at head `8633682815edeb28357ed452a938d8d1ebcc3622`; GitHub checked out PR merge tree `baf2017ef58d99ea5f2e9be4d891fd67c7fd3970`.
+
+The full validator passed: schema/fixtures, all 14 negative cases, generated types/strict compilation, actual E02 output, **17 acyclic tasks, 30 acceptance references and 29 local Markdown links**, with the superseded active tree absent. All 16 Node prototype tests passed again. These counts describe that exact run; later link additions can change link counts.
+
+The first run surfaced a deprecation warning in the CI actions, not a failed application test. Checkout/setup-node were then moved to current release-pinned action commits; subsequent Actions results verify that workflow revision separately.
+
 ## Repository automation
 
-[../.github/workflows/verify.yml](../.github/workflows/verify.yml) runs the full repository validator and Node tests on pull requests and pushes to main. It checks generated types, task/acceptance references, dependency cycles, local Markdown targets and reintroduced retired paths. Results for a specific commit belong to its GitHub Actions run, not a permanent promise in this file.
+[../.github/workflows/verify.yml](../.github/workflows/verify.yml) runs the full repository validator and Node tests on pull requests and pushes to main. It checks generated types, task/acceptance references, dependency cycles, local Markdown targets and reintroduced retired paths. Results for a specific commit belong to its GitHub Actions run, not a permanent promise in this file. It does not run the optional browser test.
 
 Reproduce full checks:
 
