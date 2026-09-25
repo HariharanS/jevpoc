@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FAFBFD"/>
+      <stop offset="55%" stop-color="#F7F8FC"/>
+      <stop offset="100%" stop-color="#FFF8F7"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="45%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="25%" stop-color="#CBE1FF"/>
+      <stop offset="58%" stop-color="#7DA7FF"/>
+      <stop offset="83%" stop-color="#A784FF"/>
+      <stop offset="100%" stop-color="#6FE8D0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#24324A" flood-opacity=".10"/>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+
+  <text x="76" y="76" fill="#171A22" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700">JEV — Live Intent Workspace</text>
+  <text x="76" y="108" fill="#747986" font-family="Inter,Arial,sans-serif" font-size="17">Visual taste reference · voice first, cards first, details on demand</text>
+
+  <rect x="64" y="144" width="1472" height="790" rx="28" fill="#FFFFFF" stroke="#E8EAF0" filter="url(#shadow)"/>
+
+  <!-- sidebar -->
+  <rect x="64" y="144" width="190" height="790" rx="28" fill="#FBFCFE"/>
+  <line x1="254" y1="144" x2="254" y2="934" stroke="#ECEEF3"/>
+  <circle cx="104" cy="190" r="14" fill="url(#orb)"/>
+  <text x="130" y="197" fill="#171A22" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700">JEV</text>
+
+  <rect x="84" y="234" width="148" height="46" rx="12" fill="#EEF4FF"/>
+  <text x="111" y="263" fill="#1C55DB" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="600">Today</text>
+  <text x="104" y="319" fill="#6D7280" font-family="Inter,Arial,sans-serif" font-size="15">Tasks</text>
+  <text x="104" y="363" fill="#6D7280" font-family="Inter,Arial,sans-serif" font-size="15">Notes</text>
+  <text x="104" y="407" fill="#6D7280" font-family="Inter,Arial,sans-serif" font-size="15">Journal</text>
+  <text x="104" y="451" fill="#6D7280" font-family="Inter,Arial,sans-serif" font-size="15">Calendar</text>
+
+  <text x="92" y="878" fill="#9BA0AB" font-family="Inter,Arial,sans-serif" font-size="13">Talk naturally.</text>
+  <text x="92" y="899" fill="#9BA0AB" font-family="Inter,Arial,sans-serif" font-size="13">I’ll keep up.</text>
+
+  <!-- main -->
+  <text x="292" y="192" fill="#171A22" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700">Good afternoon</text>
+  <text x="292" y="222" fill="#838895" font-family="Inter,Arial,sans-serif" font-size="15">Speak naturally — I’ll turn it into useful state.</text>
+
+  <rect x="1268" y="170" width="208" height="42" rx="21" fill="#F6F7FA" stroke="#E8EAF0"/>
+  <text x="1300" y="196" fill="#717684" font-family="Inter,Arial,sans-serif" font-size="14">Developer details</text>
+  <rect x="1424" y="179" width="38" height="24" rx="12" fill="#DADDE4"/>
+  <circle cx="1436" cy="191" r="9" fill="#FFFFFF"/>
+
+  <!-- orb strip -->
+  <ellipse cx="398" cy="340" rx="84" ry="84" fill="#8DB7FF" opacity=".11" filter="url(#soft)"/>
+  <circle cx="398" cy="340" r="62" fill="url(#orb)"/>
+  <path d="M366 342 C382 323 412 325 430 343 C415 361 386 362 366 342Z" fill="#FFFFFF" opacity=".35"/>
+  <text x="335" y="426" fill="#252A35" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="600">Listening…</text>
+  <text x="326" y="452" fill="#8A8F9C" font-family="Inter,Arial,sans-serif" font-size="14">You can keep talking.</text>
+
+  <!-- live transcript -->
+  <rect x="500" y="276" width="626" height="182" rx="20" fill="#FBFCFE" stroke="#E8EAF0"/>
+  <text x="528" y="310" fill="#7B808D" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="600">LIVE TRANSCRIPT</text>
+  <circle cx="1082" cy="305" r="5" fill="#1DB66D"/>
+  <text x="1095" y="311" fill="#1B9C5D" font-family="Inter,Arial,sans-serif" font-size="13">Live</text>
+
+  <text x="528" y="350" fill="#4D535F" font-family="Inter,Arial,sans-serif" font-size="18">Today I drank </text>
+  <text x="650" y="350" fill="#9A9EAA" text-decoration="line-through" font-family="Inter,Arial,sans-serif" font-size="18">200 ml Coke</text>
+  <text x="758" y="350" fill="#4D535F" font-family="Inter,Arial,sans-serif" font-size="18">…</text>
+
+  <rect x="526" y="367" width="201" height="28" rx="8" fill="#E9F8EF"/>
+  <text x="537" y="387" fill="#26885B" font-family="Inter,Arial,sans-serif" font-size="17">ah no, I mean water</text>
+
+  <rect x="526" y="404" width="359" height="28" rx="8" fill="#E9F8EF"/>
+  <text x="537" y="424" fill="#26885B" font-family="Inter,Arial,sans-serif" font-size="17">pick up my parcel from Australia Post at 2pm</text>
+
+  <text x="894" y="424" fill="#B0B4BE" font-family="Inter,Arial,sans-serif" font-size="17">… remind me to take my medicine…</text>
+
+  <!-- things caught -->
+  <text x="292" y="518" fill="#171A22" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700">Things I caught</text>
+  <text x="1077" y="518" fill="#8A8F9C" font-family="Inter,Arial,sans-serif" font-size="14">4 items</text>
+
+  <!-- cards -->
+  <rect x="292" y="548" width="398" height="134" rx="18" fill="#FFFFFF" stroke="#E7EAF0" filter="url(#shadow)"/>
+  <circle cx="333" cy="589" r="23" fill="#EDF5FF"/>
+  <path d="M333 571 C322 585 325 596 333 603 C341 596 344 585 333 571Z" fill="#3478F6"/>
+  <text x="371" y="585" fill="#1B1F28" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">Hydration</text>
+  <text x="371" y="613" fill="#252A35" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="600">200 ml Water</text>
+  <rect x="371" y="628" width="145" height="27" rx="13.5" fill="#EAF8EF"/>
+  <text x="387" y="647" fill="#25865A" font-family="Inter,Arial,sans-serif" font-size="13">Corrected from Coke</text>
+  <text x="651" y="616" fill="#98A0AC" font-family="Inter,Arial,sans-serif" font-size="22">›</text>
+
+  <rect x="708" y="548" width="398" height="134" rx="18" fill="#FFFFFF" stroke="#E7EAF0" filter="url(#shadow)"/>
+  <circle cx="749" cy="589" r="23" fill="#FFF3E9"/>
+  <rect x="740" y="580" width="18" height="18" rx="3" fill="none" stroke="#E98828" stroke-width="3"/>
+  <text x="787" y="585" fill="#1B1F28" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">Parcel pickup</text>
+  <text x="787" y="613" fill="#252A35" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="600">Australia Post · 2:00 PM</text>
+  <text x="1067" y="616" fill="#98A0AC" font-family="Inter,Arial,sans-serif" font-size="22">›</text>
+
+  <rect x="292" y="700" width="398" height="134" rx="18" fill="#FFFFFF" stroke="#E7EAF0" filter="url(#shadow)"/>
+  <circle cx="333" cy="741" r="23" fill="#FFF3EA"/>
+  <circle cx="333" cy="741" r="9" fill="none" stroke="#E79C32" stroke-width="2"/>
+  <line x1="333" y1="741" x2="333" y2="735" stroke="#E79C32" stroke-width="2"/>
+  <line x1="333" y1="741" x2="338" y2="744" stroke="#E79C32" stroke-width="2"/>
+  <text x="371" y="737" fill="#1B1F28" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">Medicine reminder</text>
+  <text x="371" y="765" fill="#252A35" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="600">Take medicine</text>
+  <rect x="371" y="780" width="93" height="27" rx="13.5" fill="#FFF4DF"/>
+  <text x="390" y="799" fill="#B57A18" font-family="Inter,Arial,sans-serif" font-size="13">Needs time</text>
+
+  <rect x="708" y="700" width="398" height="134" rx="18" fill="#FFFFFF" stroke="#E7EAF0" filter="url(#shadow)"/>
+  <circle cx="749" cy="741" r="23" fill="#F3EEFF"/>
+  <rect x="741" y="731" width="16" height="20" rx="3" fill="none" stroke="#7F62EA" stroke-width="2"/>
+  <line x1="745" y1="737" x2="753" y2="737" stroke="#7F62EA" stroke-width="2"/>
+  <line x1="745" y1="742" x2="753" y2="742" stroke="#7F62EA" stroke-width="2"/>
+  <text x="787" y="737" fill="#1B1F28" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">Journal</text>
+  <text x="787" y="765" fill="#252A35" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="600">Dream car arrived</text>
+  <text x="787" y="798" fill="#7F62EA" font-family="Inter,Arial,sans-serif" font-size="14">happy + sad</text>
+
+  <!-- explanation panel -->
+  <rect x="1148" y="246" width="332" height="588" rx="22" fill="#FCFCFE" stroke="#E5E8EF"/>
+  <text x="1177" y="286" fill="#171A22" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700">How this was understood</text>
+  <text x="1177" y="312" fill="#868B98" font-family="Inter,Arial,sans-serif" font-size="13">Details on demand — not the default view.</text>
+
+  <rect x="1174" y="338" width="280" height="102" rx="15" fill="#FFFFFF" stroke="#E8EAF0"/>
+  <text x="1194" y="366" fill="#737986" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">HEARD</text>
+  <text x="1194" y="394" fill="#2D323D" font-family="Inter,Arial,sans-serif" font-size="15">“200 ml Coke …</text>
+  <text x="1194" y="418" fill="#2D323D" font-family="Inter,Arial,sans-serif" font-size="15">no, I mean water.”</text>
+
+  <rect x="1174" y="454" width="280" height="102" rx="15" fill="#FFFFFF" stroke="#E8EAF0"/>
+  <text x="1194" y="482" fill="#737986" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">UNDERSTOOD AS</text>
+  <text x="1194" y="512" fill="#2D323D" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">Hydration · 200 ml</text>
+  <text x="1194" y="536" fill="#7E8490" font-family="Inter,Arial,sans-serif" font-size="13">Mapped to the existing hydration item.</text>
+
+  <rect x="1174" y="570" width="280" height="102" rx="15" fill="#FFFFFF" stroke="#E8EAF0"/>
+  <text x="1194" y="598" fill="#737986" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">UPDATED</text>
+  <text x="1194" y="628" fill="#278B5B" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">Coke → Water</text>
+  <text x="1194" y="652" fill="#7E8490" font-family="Inter,Arial,sans-serif" font-size="13">Same card, corrected in place.</text>
+
+  <rect x="1174" y="686" width="280" height="102" rx="15" fill="#FFFDF8" stroke="#F1E7C8"/>
+  <text x="1194" y="714" fill="#97701A" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">NEEDS</text>
+  <text x="1194" y="744" fill="#3A3323" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">A reminder time</text>
+  <text x="1194" y="768" fill="#8B8170" font-family="Inter,Arial,sans-serif" font-size="13">We’ll wait until you add one.</text>
+
+  <rect x="1174" y="806" width="280" height="36" rx="18" fill="#F2F4F8"/>
+  <text x="1240" y="829" fill="#5E6470" font-family="Inter,Arial,sans-serif" font-size="13">Developer details ›</text>
+
+  <!-- footer composer -->
+  <rect x="292" y="862" width="814" height="52" rx="26" fill="#F7F8FB" stroke="#E4E6EC"/>
+  <circle cx="326" cy="888" r="18" fill="#E9EEFF"/>
+  <text x="320" y="894" fill="#486FE8" font-family="Inter,Arial,sans-serif" font-size="18">●</text>
+  <text x="358" y="894" fill="#9B9FAA" font-family="Inter,Arial,sans-serif" font-size="15">Type or speak naturally…</text>
+</svg>
