@@ -65,6 +65,22 @@ Later, JEV can help judge whether adjacent events belong to the same episode.
 
 Do not send every token to memory classification.
 
+The initial memory candidate extractor is **deterministic over structured runtime events**. It is not an unspecified hidden LLM.
+
+Candidate sources include:
+
+- SemanticEvent created/patched/sealed;
+- user correction;
+- approval decision;
+- tool failure/retry/result;
+- accepted/rejected architecture decision;
+- explicit project constraint;
+- run completion with unresolved work.
+
+For structured events, code can create a candidate directly.
+
+An LLM summarizer may be added later only when a long prose episode genuinely needs synthesis.
+
 First create candidate signals from meaningful runtime events.
 
 Examples:
@@ -253,16 +269,77 @@ Episode 14
 
 Again, this exposes decisions/evidence, not hidden chain-of-thought.
 
-## Initial implementation
+## Read path: memory must affect later turns
 
-Do not build a vector memory system first.
+Memory is not write-only.
+
+Persist accepted signals separately from uncommitted candidates:
+
+~~~text
+memory_candidates
+  -> proposed signal + evidence + Jev classification
+
+memory_signals
+  -> accepted/persisted signal
+~~~
+
+Milestone 5 loads a bounded set of memory_signals into the next SemanticFrame.
+
+Initial deterministic retrieval:
+
+1. all active short-term signals for the current session;
+2. non-superseded long-term signals whose explicit kind/key matches the active feature/domain;
+3. a small recent set for the same demo domain.
+
+Example:
+
+~~~text
+new reminder request
+   |
+   +--> load current reminder-policy signal
+   +--> load explicit user preference keyed to reminders
+   |
+   v
+SemanticFrame.memory
+~~~
+
+Do not add vector retrieval yet.
+
+### Suggested persisted signal
+
+~~~ts
+type MemorySignal = {
+  id: string;
+  scope: "short_term" | "retrospective" | "long_term";
+  kind: string;
+  key?: string;
+  summary: string;
+  structured?: JsonValue;
+  evidenceRefs: string[];
+  sessionId?: string;
+  createdAt: number;
+  supersededBy?: string;
+};
+~~~
+
+A later accepted signal can supersede an older one, but chronology/evidence remains preserved.
+
+## Initial implementation
 
 Start with:
 
-- SQLite memory_candidates table;
-- structured episode references;
-- JEV classification;
-- simple exact/keyword retrieval for dedupe experiments;
-- Inspector UI.
+- SQLite memory_candidates;
+- SQLite memory_signals;
+- deterministic candidate extraction from structured trace/state events;
+- bounded episode references;
+- Jev classification;
+- deterministic persistence policy;
+- deterministic exact kind/key + recent-domain readback;
+- simple exact/keyword lookup for dedupe experiments;
+- Inspector memory view.
+
+Acceptance should include a later semantic run visibly receiving a previously persisted memory signal.
 
 Add embeddings/vector search only when a real retrieval problem demonstrates the need.
+
+See docs/18-runtime-contracts.md for the initial read-path contract.
