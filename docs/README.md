@@ -27,7 +27,8 @@ Read these first:
 4. [JEV request modeling](11-jev-request-modeling.md) — exactly how state/questions are constructed.
 5. [Semantic state and UI runtime](12-semantic-state-and-ui-runtime.md) — CREATE/PATCH/MERGE/SEAL and morphing UI.
 6. [Voice architecture](08-voice-architecture.md) — STT/control-first vs native realtime.
-7. [Implementation plan](07-implementation-plan.md) — build sequence.
+7. [Streaming checkpoint scheduler](16-streaming-checkpoint-scheduler.md) — how continuous/yapping input is chunked into semantic checkpoints without an LLM on every partial.
+8. [Implementation plan](07-implementation-plan.md) — build sequence.
 
 Then read the relevant research snapshot for the area you are changing.
 
@@ -97,8 +98,10 @@ Runtime stage selects a versioned question set. An LLM comes first only when can
 
 Two explicit modes:
 
-1. STT/control-first: transcript evidence -> semantic checkpoint -> JEV -> policy.
+1. STT/control-first: transcript evidence -> **hybrid checkpoint scheduler** -> semantic checkpoint -> JEV -> policy.
 2. Native realtime speech-to-speech: provider owns conversational audio loop; application still owns tools, approval, durable mutation and memory.
+
+For the control-first path, event normalization is deliberately dumb bookkeeping. The checkpoint scheduler decides **when to ask JEV** using cheap signals; JEV decides **what the speech means**. See [16 — Streaming input and semantic checkpoint scheduler](16-streaming-checkpoint-scheduler.md).
 
 Do not pretend these have the same interception point.
 
@@ -277,7 +280,7 @@ Unless a concrete requirement appears, do not introduce:
 | Raw-request/model routing | 10, 11, harness research |
 | Microsoft Agent Framework/Copilot/Strands integration | 10 + harness research |
 | JEV questions/evals | 03, 11, JEV harness research |
-| Voice/STT/realtime | 08, 11, voice-provider research, mixed-utterance example |
+| Voice/STT/realtime | 08, 11, 16, voice-provider research, mixed-utterance example |
 | UI/cards/generative UI | 09, 12 |
 | Tools/MCP/WebMCP | 14, 10 |
 | Memory/retro | 13, 11 |
