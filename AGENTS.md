@@ -6,6 +6,8 @@ The repository itself is the durable project memory. Do not assume important rea
 
 ## First read
 
+If you were asked to start coding the first slice, read BUILD.md first and implement only the assigned milestones.
+
 Before substantial work:
 
 1. read `docs/README.md` for the project-brain map and status legend;
