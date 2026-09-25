@@ -186,11 +186,23 @@ Those are not equivalent.
 
 The second should become an application-level patch to interpreted state.
 
+## Input/event normalization is not semantic intelligence
+
+The deterministic stage before JEV only wraps facts the application already knows: session/utterance IDs, transcript revision, timestamp, source, known permissions, available tools and active state references.
+
+It does **not** decide what the user means.
+
+For continuous speech, a separate **Semantic Checkpoint Scheduler** decides when enough potentially useful evidence has accumulated to justify a JEV call. The scheduler uses cheap mechanical signals such as stable/final STT segments, pauses/VAD, elapsed time, amount of new text, correction hints and speech-end.
+
+The scheduler answers only **"when should we ask JEV?"**. JEV answers **"what does this mean?"**.
+
+See [16 — Streaming input and semantic checkpoint scheduler](16-streaming-checkpoint-scheduler.md) for the full yapping/continuous-speech design, trade-offs and eval plan.
+
 ## Semantic checkpoints
 
 Do not invoke the full agent loop on every transcript token.
 
-Feed JEV when there is useful new semantic information, for example:
+Feed JEV when the checkpoint scheduler determines there is useful new semantic evidence, for example:
 
 - a stable transcript segment,
 - a short pause,
