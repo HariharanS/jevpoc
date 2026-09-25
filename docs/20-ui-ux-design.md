@@ -1,7 +1,9 @@
 # UI / UX design for the JEV POC
 
 > **Status:** Normative product design for the first implementation
-> **Purpose:** Give coding agents a concrete screen model rather than leaving "the UI" as an unspecified React app.
+> **Purpose:** Give coding agents a concrete developer/Lab screen model rather than leaving "the UI" as an unspecified React app.
+
+> **Important:** This document describes the expanded Lab/developer presentation. It is **not** the default end-user screen. Read [21 — Core app experience](21-core-app-experience.md) first.
 
 ## Visual reference
 
@@ -11,9 +13,19 @@ A concrete dark-theme Lab wireframe is checked in at:
 
 Coding agents should treat it as a layout/interaction reference, not a pixel-perfect design system.
 
+## Role of this view
+
+The three-column layout is an **expanded development/demo state inside the app**.
+
+It appears when Processing/Developer details are enabled.
+
+The normal product remains voice orb + intent cards, with transcript/processing progressively disclosed.
+
+See [21-core-app-experience.md](21-core-app-experience.md).
+
 ## Design goal
 
-The UI should make the core idea visible:
+When expanded, the UI should make the core idea visible:
 
 > **raw language becomes interpreted state, then typed cards/events.**
 
@@ -36,9 +48,9 @@ A clean end-user experience:
 
 No developer telemetry clutter.
 
-### Lab / Inspector mode
+### Developer details enabled
 
-Same session and same runtime, but exposes:
+Same session and same runtime, toggled within the app, exposes:
 
 - raw streaming transcript;
 - revisions;
@@ -50,7 +62,7 @@ Same session and same runtime, but exposes:
 - latency/cost;
 - trace timeline.
 
-The user can toggle modes without restarting the session.
+The user can toggle developer details without restarting or navigating away from the session. The trace is a feature toggle/overlay, not a separate core product destination.
 
 ## Desktop layout
 
