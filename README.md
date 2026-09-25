@@ -2,88 +2,243 @@
 
 A local-first reference application for exploring **JEV as a fast decision plane around an AI agent**.
 
-The project deliberately starts small: deterministic application code owns state and actions, JEV makes typed probabilistic decisions, and an LLM is used only where open-ended reasoning or generation is actually needed.
+The repository is intended to be more than a codebase: it is the project's **shared research and design memory**, so a new human or AI agent can continue from the decisions and investigations already completed instead of starting again from a blank search.
 
-Voice is a first-class path. The design supports both a revision-aware STT/control-first pipeline and native realtime speech-to-speech providers without giving provider SDKs ownership of application policy or consequential tool execution.
+## Project brain
 
-## Final approach
+Start with **[docs/README.md](docs/README.md)**.
 
-```
-text --------------------------+
-                               |
-voice -> Voice Gateway         |
-          |                    |
-          +-> Transcript Ledger+
-                               v
-                    application orchestrator
-                               |
-             +-----------------+------------------+
-             |                 |                  |
-             v                 v                  v
-            JEV              optional LLM       Tool Gateway
-             |                                    |
-             v                                    v
-      deterministic policy               validate / approve / execute
-             |
-             +--> state / memory / trace
-```
+It distinguishes:
 
-The important separation is:
+- **chosen / normative design** — what to build;
+- **research snapshots** — alternatives and current external findings;
+- **reference scenarios / eval seeds** — concrete behavior to preserve;
+- **spikes** — questions deliberately left open;
+- **deferred work** — things agents should not add opportunistically.
+
+For implementation status, see **[docs/15-decision-status-and-open-experiments.md](docs/15-decision-status-and-open-experiments.md)**.
+
+## Product thesis
+
+This is **not primarily a chatbot**.
+
+The product is a live intent workspace:
+
+~~~text
+language / voice
+      |
+      v
+semantic evidence
+      |
+      v
+JEV decisions
+      |
+      v
+deterministic policy + evolving typed state
+      |
+      v
+appropriate UI / model / tool / workflow
+~~~
+
+A useful shorthand is:
+
+> **Describe the problem. The interface appears.**
+
+## Runtime approach
+
+~~~text
+RAW INPUT
+   |
+   v
+deterministic normalization
+   |
+   v
+bounded SemanticFrame
+   |
+   v
+stage-specific JEV questions
+   |
+   v
+deterministic policy
+   |
+   +--> no LLM / deterministic handler
+   |
+   +--> selected model or agent harness
+   |
+   +--> ask / wait / approval
+   |
+   v
+governed Tool Gateway
+   |
+   v
+completion / semantic state / memory / trace
+~~~
+
+The critical separation is:
 
 **evidence -> JEV signals -> application policy -> execution**
 
-For voice specifically:
+JEV does not execute business actions. A model probability is not authorization.
 
-**audio -> revisable transcript/events -> semantic checkpoint -> JEV -> policy**
+Detailed mechanics: [docs/10-request-lifecycle-and-harness.md](docs/10-request-lifecycle-and-harness.md) and [docs/11-jev-request-modeling.md](docs/11-jev-request-modeling.md).
 
-A transcript becoming "final" is not itself authorization to execute an action.
+## Voice
 
-## Start here
+Voice is a first-class path.
 
-For humans and coding agents:
+The design explicitly supports two different modes:
 
-1. [Product intent](docs/00-product-intent.md)
-2. [System design](docs/01-system-design.md)
-3. [Technical design](docs/02-technical-design.md)
-4. [JEV decision model](docs/03-jev-decision-model.md)
-5. [Observability / inspector](docs/04-observability.md)
-6. [Local-to-cloud evolution](docs/05-local-to-cloud.md)
-7. [AI-agent collaboration](docs/06-agent-collaboration.md)
-8. [Implementation plan](docs/07-implementation-plan.md)
-9. [Voice architecture](docs/08-voice-architecture.md)
-10. [Agent working agreement](AGENTS.md)
+### STT / control-first
 
-Architectural decisions live in [docs/adr](docs/adr).
+~~~text
+audio
+  -> streaming STT
+  -> revision-aware Transcript Ledger
+  -> semantic checkpoint
+  -> JEV
+  -> policy
+  -> optional reasoning/tool
+~~~
 
-## Voice modes
-
-The repo explicitly supports two different control models.
-
-### STT/control-first
-
-Use streaming speech-to-text, preserve partial/revised/final hypotheses in a Transcript Ledger, invoke JEV at semantic checkpoints, and keep execution behind deterministic commit rules.
-
-This is the first voice mode to build because it makes the JEV value visible.
+This is the first voice path to build because it exposes the semantic control plane and correction behavior.
 
 ### Native realtime speech-to-speech
 
-Use a provider such as OpenAI Realtime, Gemini Live or xAI/Grok Voice for the low-latency conversational loop.
+A provider such as OpenAI Realtime, Gemini Live or xAI/Grok Voice can own the low-latency conversational loop.
 
-In this mode the voice model may hear audio before JEV receives a transcript, so JEV is not a pre-model filter. Application control remains at the Tool Gateway, approvals, durable state mutation and persistence boundaries.
+In that mode, JEV cannot pretend to be a pre-model filter because the voice model has already heard the audio. Application control remains at:
 
-See [docs/08-voice-architecture.md](docs/08-voice-architecture.md) and [ADR 0004](docs/adr/0004-voice-control-plane.md).
+- Tool Gateway;
+- approvals;
+- durable state mutation;
+- delegated backend work;
+- memory/persistence.
+
+See [docs/08-voice-architecture.md](docs/08-voice-architecture.md) and the dated [voice-provider research](docs/research/2026-09-25-voice-provider-findings.md).
+
+## Semantic state and UI
+
+The runtime uses explicit event identity and a small mutation vocabulary:
+
+~~~text
+CREATE
+PATCH
+MERGE
+CLOSE
+CANCEL
+IGNORE
+WAIT
+~~~
+
+Semantic events can move through:
+
+~~~text
+draft -> soft_committed -> patch/merge -> sealed
+~~~
+
+This enables the UI to **morph rather than spam**.
+
+Example:
+
+~~~text
+"I drank 200 ml Coke..."
+    -> Hydration card: 200 ml Coke
+
+"...no, I mean water."
+    -> same card patched to 200 ml Water
+~~~
+
+See [docs/12-semantic-state-and-ui-runtime.md](docs/12-semantic-state-and-ui-runtime.md).
+
+## Harness strategy
+
+The JEV control plane is harness-neutral.
+
+Research already exists for:
+
+- a thin application-owned orchestrator;
+- Microsoft Agent Framework;
+- GitHub Copilot SDK;
+- LangChain / LangGraph;
+- Strands Agents;
+- Pi.
+
+The app should see the raw semantic request before committing to a reasoning model.
+
+Framework-specific types stay behind adapters.
+
+See:
+
+- [Request lifecycle and harness integration](docs/10-request-lifecycle-and-harness.md)
+- [Harness/framework research](docs/research/2026-09-25-harness-framework-evaluation.md)
+- [JEV harness patterns](docs/research/2026-09-25-jev-harness-patterns.md)
+
+## JEV request modeling
+
+Normal runtime JEV questions are **not invented by an LLM on every request**.
+
+The application:
+
+1. identifies the lifecycle stage;
+2. builds a bounded semantic state frame;
+3. selects a versioned question set;
+4. calls JEV;
+5. applies calibrated deterministic policy.
+
+An LLM may precede JEV when **candidate generation itself is open-ended**, such as reading API documentation and proposing possible integration paths.
+
+See [docs/11-jev-request-modeling.md](docs/11-jev-request-modeling.md).
+
+## Tool execution
+
+All consequential actions go through the application-owned Tool Gateway.
+
+Models, realtime voice providers, MCP, WebMCP and agent frameworks may propose calls; they do not bypass:
+
+- schema validation;
+- hard permissions;
+- deterministic policy;
+- JEV semantic checks where useful;
+- approval;
+- idempotency;
+- audit/trace.
+
+See [docs/14-tool-gateway-mcp-webmcp.md](docs/14-tool-gateway-mcp-webmcp.md).
+
+## Memory and retrospectives
+
+JEV can classify bounded session episodes into:
+
+- ephemeral;
+- short-term;
+- retrospective;
+- long-term;
+- discard.
+
+The application decides persistence.
+
+See [docs/13-session-retro-memory.md](docs/13-session-retro-memory.md).
+
+## Reference scenarios
+
+Two detailed scenarios are already preserved:
+
+- [Mixed voice utterance end-to-end](docs/examples/01-mixed-utterance-end-to-end.md)
+- [API Journey Compiler](docs/examples/02-api-journey-compiler.md)
+
+These are intended to become eval/test seeds rather than one-off examples.
 
 ## Engineering posture
 
 - Local first; cloud deployable later.
 - Modular monolith before distributed systems.
 - Standard React UI before agent-UI frameworks.
-- Ports/adapters around JEV, LLM, voice, tools and persistence.
-- Preserve transcript revisions instead of flattening voice into one final string.
+- Ports/adapters around JEV, harnesses, LLMs, voice, tools and persistence.
+- Preserve evidence revisions instead of flattening them.
 - Do not run the full agent loop for every speech partial.
-- Consequential actions always pass through application policy/tool gating.
-- Observable by default, without requiring a hosted observability platform locally.
-- Human approval is explicit for consequential actions.
+- Consequential actions always pass through policy/tool gating.
+- Observable by default.
+- Human approval is explicit where required.
 - Prefer boring, testable code over abstractions invented for hypothetical scale.
 
 ## Initial technology direction
@@ -96,12 +251,22 @@ See [docs/08-voice-architecture.md](docs/08-voice-architecture.md) and [ADR 0004
 - Zod
 - Vitest
 - OpenTelemetry
-- SSE for the live inspector
+- SSE for the Inspector event stream
 
 These are starting choices rather than permanent platform commitments.
 
 ## Build order
 
-The implementation plan deliberately starts with a walking skeleton and fake decision engine, then introduces real JEV, LLM escalation, one safe tool, session-signal classification, control-first voice, correction/commit semantics, interruption, native realtime voice comparison, and finally cloud deployment.
+See [docs/07-implementation-plan.md](docs/07-implementation-plan.md).
 
-Do not start by building a generic harness framework or a generic voice-provider framework.
+The sequence deliberately proves one vertical slice at a time rather than building a generic harness or voice platform first.
+
+## Agent instructions
+
+Before coding, read:
+
+- [AGENTS.md](AGENTS.md)
+- [docs/README.md](docs/README.md)
+- the relevant normative docs and research snapshots for the task.
+
+Architectural decisions live under [docs/adr](docs/adr).
