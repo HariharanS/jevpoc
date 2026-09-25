@@ -19,7 +19,9 @@ Mandatory:
 3. docs/18-runtime-contracts.md
 4. docs/19-first-demo-and-evaluation.md
 5. docs/20-ui-ux-design.md
-6. docs/02-technical-design.md
+6. docs/22-visual-design-system-and-taste.md
+7. docs/ui/taste-reference-v2.svg
+8. docs/02-technical-design.md
 7. docs/12-semantic-state-and-ui-runtime.md
 8. docs/04-observability.md
 9. tests/evals/README.md
@@ -177,7 +179,9 @@ Corrections must preserve SemanticEvent.id.
 
 ## UI
 
-Follow docs/20-ui-ux-design.md and docs/ui/lab-layout.svg.
+Follow docs/21-core-app-experience.md, docs/22-visual-design-system-and-taste.md and docs/ui/taste-reference-v2.svg for the normal product surface.
+
+Use docs/20-ui-ux-design.md and docs/ui/lab-layout.svg only for the expanded Lab/developer view.
 
 Minimum:
 
