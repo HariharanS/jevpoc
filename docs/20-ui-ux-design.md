@@ -3,6 +3,14 @@
 > **Status:** Normative product design for the first implementation
 > **Purpose:** Give coding agents a concrete screen model rather than leaving "the UI" as an unspecified React app.
 
+## Visual reference
+
+A concrete dark-theme Lab wireframe is checked in at:
+
+[docs/ui/lab-layout.svg](ui/lab-layout.svg)
+
+Coding agents should treat it as a layout/interaction reference, not a pixel-perfect design system.
+
 ## Design goal
 
 The UI should make the core idea visible:
