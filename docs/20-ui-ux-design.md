@@ -5,13 +5,19 @@
 
 > **Important:** This document describes the expanded Lab/developer presentation. It is **not** the default end-user screen. Read [21 — Core app experience](21-core-app-experience.md) first.
 
-## Visual reference
+## Visual references
 
-A concrete dark-theme Lab wireframe is checked in at:
+Preferred product/taste reference:
+
+[docs/ui/taste-reference-v2.svg](ui/taste-reference-v2.svg)
+
+Expanded developer/Lab reference:
 
 [docs/ui/lab-layout.svg](ui/lab-layout.svg)
 
-Coding agents should treat it as a layout/interaction reference, not a pixel-perfect design system.
+Read [22 — Visual design system and taste](22-visual-design-system-and-taste.md) before styling the implementation.
+
+These are direction references, not pixel-perfect design systems.
 
 ## Role of this view
 
