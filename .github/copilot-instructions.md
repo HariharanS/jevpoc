@@ -1,5 +1,7 @@
 # Copilot instructions for JEV POC
 
+If you are starting the first coding slice, read BUILD.md first.
+
 Read AGENTS.md and docs/README.md before substantial work.
 
 The repository contains both **normative design** and **dated research snapshots**. Research files describe evaluated alternatives/current external capabilities; they are not permission to implement every option.
